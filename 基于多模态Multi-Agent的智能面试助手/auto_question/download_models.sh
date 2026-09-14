@@ -1,0 +1,1 @@
+modelscope download --model Qwen/Qwen2.5-VL-7B-Instruct --local_dir 'models/qwen2.5vl'

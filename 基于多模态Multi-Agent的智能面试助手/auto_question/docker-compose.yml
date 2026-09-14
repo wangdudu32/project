@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - /archive/share/cql/LLM-FoR-ALL/mini_vlm/models/qwen2.5vl:/archive/share/cql/LLM-FoR-ALL/mini_vlm/models/qwen2.5vl # Mount model if needed
+    environment:
+      - USE_MOCK_MODEL=True # Change to False if GPU available
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

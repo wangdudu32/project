@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+langgraph
+langchain
+langchain-core
+langchain-community
+pdf2image
+pypdf
+pillow
+sympy
+tiktoken
+einops
+transformers_stream_generator
