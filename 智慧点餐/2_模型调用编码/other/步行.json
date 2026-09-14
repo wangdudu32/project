@@ -1,0 +1,68 @@
+{
+    "status": "1",
+    "info": "OK",
+    "infocode": "10000",
+    "count": "1",
+    "route": {
+        "origin": "114.401934,30.465295",
+        "destination": "114.410537,30.477059",
+        "paths": [
+            {
+                "distance": "1996",
+                "cost": {
+                    "duration": "1597"
+                },
+                "steps": [
+                    {
+                        "instruction": "沿茅店山路向北步行442米右转",
+                        "orientation": "北",
+                        "road_name": "茅店山路",
+                        "step_distance": "442"
+                    },
+                    {
+                        "instruction": "向北步行87米直行",
+                        "orientation": "北",
+                        "road_name": "",
+                        "step_distance": "87"
+                    },
+                    {
+                        "instruction": "沿软件园中路向北步行405米右转",
+                        "orientation": "北",
+                        "road_name": "软件园中路",
+                        "step_distance": "405"
+                    },
+                    {
+                        "instruction": "沿软件园路向东步行647米左转",
+                        "orientation": "东",
+                        "road_name": "软件园路",
+                        "step_distance": "647"
+                    },
+                    {
+                        "instruction": "沿关山大道辅路向北步行321米右转",
+                        "orientation": "北",
+                        "road_name": "关山大道辅路",
+                        "step_distance": "321"
+                    },
+                    {
+                        "instruction": "向东步行8米向右前方行走",
+                        "orientation": "东",
+                        "road_name": "",
+                        "step_distance": "8"
+                    },
+                    {
+                        "instruction": "向东步行49米左转",
+                        "orientation": "东",
+                        "road_name": "",
+                        "step_distance": "49"
+                    },
+                    {
+                        "instruction": "向北步行37米到达目的地",
+                        "orientation": "北",
+                        "road_name": "",
+                        "step_distance": "37"
+                    }
+                ]
+            }
+        ]
+    }
+}

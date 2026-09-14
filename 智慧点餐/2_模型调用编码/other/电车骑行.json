@@ -1,0 +1,60 @@
+{
+    "status": "1",
+    "info": "OK",
+    "infocode": "10000",
+    "count": "1",
+    "route": {
+        "origin": "114.401934,30.465295",
+        "destination": "114.410537,30.477059",
+        "paths": [
+            {
+                "distance": "2044",
+                "duration": "435",
+                "steps": [
+                    {
+                        "instruction": "沿茅店山中路骑行607米右转",
+                        "orientation": "",
+                        "road_name": "茅店山中路",
+                        "step_distance": 607
+                    },
+                    {
+                        "instruction": "沿茅店山东路骑行216米向左前方行驶",
+                        "orientation": "",
+                        "road_name": "茅店山东路",
+                        "step_distance": 216
+                    },
+                    {
+                        "instruction": "向东骑行19米左转",
+                        "orientation": "东",
+                        "road_name": "",
+                        "step_distance": 19
+                    },
+                    {
+                        "instruction": "沿关山大道辅路骑行865米右转",
+                        "orientation": "",
+                        "road_name": "关山大道辅路",
+                        "step_distance": 865
+                    },
+                    {
+                        "instruction": "向东骑行122米向左前方行驶",
+                        "orientation": "东",
+                        "road_name": "",
+                        "step_distance": 122
+                    },
+                    {
+                        "instruction": "向北骑行92米左转",
+                        "orientation": "北",
+                        "road_name": "",
+                        "step_distance": 92
+                    },
+                    {
+                        "instruction": "向北骑行123米到达目的地",
+                        "orientation": "北",
+                        "road_name": "",
+                        "step_distance": 123
+                    }
+                ]
+            }
+        ]
+    }
+}

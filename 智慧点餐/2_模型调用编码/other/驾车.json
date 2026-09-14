@@ -1,0 +1,253 @@
+{
+    "status": "1",
+    "info": "OK",
+    "infocode": "10000",
+    "count": "2",
+    "route": {
+        "origin": "114.401934,30.465295",
+        "destination": "114.410537,30.477059",
+        "taxi_cost": "10",
+        "paths": [
+            {
+                "distance": "2789",
+                "restriction": "0",
+                "cost": {
+                    "duration": "525",
+                    "tolls": "0",
+                    "toll_distance": "0",
+                    "traffic_lights": "8"
+                },
+                "steps": [
+                    {
+                        "instruction": "沿茅店山中路向西行驶439米左转调头",
+                        "orientation": "西",
+                        "road_name": "茅店山中路",
+                        "step_distance": "439",
+                        "cost": {
+                            "duration": "83",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "1"
+                        }
+                    },
+                    {
+                        "instruction": "沿茅店山中路向东行驶441米左转",
+                        "orientation": "东",
+                        "road_name": "茅店山中路",
+                        "step_distance": "441",
+                        "cost": {
+                            "duration": "87",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "2"
+                        }
+                    },
+                    {
+                        "instruction": "沿茅店山路途径软件园中路向北行驶919米右转",
+                        "orientation": "北",
+                        "road_name": "茅店山路",
+                        "step_distance": "919",
+                        "cost": {
+                            "duration": "118",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "2"
+                        }
+                    },
+                    {
+                        "instruction": "沿软件园路向东行驶631米左转进入主路",
+                        "orientation": "东",
+                        "road_name": "软件园路",
+                        "step_distance": "631",
+                        "cost": {
+                            "duration": "151",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "2"
+                        }
+                    },
+                    {
+                        "instruction": "沿关山大道向北行驶259米右转",
+                        "orientation": "北",
+                        "road_name": "关山大道",
+                        "step_distance": "259",
+                        "cost": {
+                            "duration": "29",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "1"
+                        }
+                    },
+                    {
+                        "instruction": "向东行驶16米左转",
+                        "orientation": "东",
+                        "step_distance": "16",
+                        "cost": {
+                            "duration": "31",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "0"
+                        }
+                    },
+                    {
+                        "instruction": "向北行驶84米到达目的地",
+                        "orientation": "北",
+                        "step_distance": "84",
+                        "cost": {
+                            "duration": "26",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "0"
+                        }
+                    }
+                ]
+            },
+            {
+                "distance": "4854",
+                "restriction": "0",
+                "cost": {
+                    "duration": "897",
+                    "tolls": "0",
+                    "toll_distance": "0",
+                    "traffic_lights": "9"
+                },
+                "steps": [
+                    {
+                        "instruction": "沿茅店山中路向西行驶311米右转",
+                        "orientation": "西",
+                        "road_name": "茅店山中路",
+                        "step_distance": "311",
+                        "cost": {
+                            "duration": "31",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "1"
+                        }
+                    },
+                    {
+                        "instruction": "沿茅店山西路向西北行驶630米向右前方行驶进入匝道",
+                        "orientation": "西北",
+                        "road_name": "茅店山西路",
+                        "step_distance": "630",
+                        "cost": {
+                            "duration": "102",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "1"
+                        }
+                    },
+                    {
+                        "instruction": "沿民族大道向西行驶196米右转",
+                        "orientation": "西",
+                        "road_name": "民族大道",
+                        "step_distance": "196",
+                        "cost": {
+                            "duration": "19",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "0"
+                        }
+                    },
+                    {
+                        "instruction": "沿民族大道向北行驶1.4千米向右前方行驶进入右转专用道",
+                        "orientation": "北",
+                        "road_name": "民族大道",
+                        "step_distance": "1393",
+                        "cost": {
+                            "duration": "179",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "3"
+                        }
+                    },
+                    {
+                        "instruction": "沿南湖大道向东北行驶82米右转",
+                        "orientation": "东北",
+                        "road_name": "南湖大道",
+                        "step_distance": "82",
+                        "cost": {
+                            "duration": "23",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "1"
+                        }
+                    },
+                    {
+                        "instruction": "沿南湖大道向东行驶1.5千米右转",
+                        "orientation": "东",
+                        "road_name": "南湖大道",
+                        "step_distance": "1481",
+                        "cost": {
+                            "duration": "310",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "3"
+                        }
+                    },
+                    {
+                        "instruction": "沿坐标西路向南行驶438米向右前方行驶",
+                        "orientation": "南",
+                        "road_name": "坐标西路",
+                        "step_distance": "438",
+                        "cost": {
+                            "duration": "122",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "0"
+                        }
+                    },
+                    {
+                        "instruction": "向西行驶106米右转",
+                        "orientation": "西",
+                        "step_distance": "106",
+                        "cost": {
+                            "duration": "37",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "0"
+                        }
+                    },
+                    {
+                        "instruction": "向北行驶56米向右前方行驶",
+                        "orientation": "北",
+                        "step_distance": "56",
+                        "cost": {
+                            "duration": "23",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "0"
+                        }
+                    },
+                    {
+                        "instruction": "向北行驶161米到达目的地",
+                        "orientation": "北",
+                        "step_distance": "161",
+                        "cost": {
+                            "duration": "51",
+                            "tolls": "0",
+                            "toll_distance": "0",
+                            "toll_road": "",
+                            "traffic_lights": "0"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
