@@ -20,6 +20,7 @@ from datetime import datetime
 
 from .base import BaseAgent
 from ..state import ResearchState, ResearchPhase
+from service.knowledge_collection import knowledge_collection
 
 # 网页文本提取库（可选依赖）
 try:
@@ -595,7 +596,7 @@ URL: {url}
 
             # 本地知识库搜索
             if search_local:
-                local_results = await self._execute_local_search(query)
+                local_results = await self._execute_local_search(query, kb_id=state.get("kb_id"))
                 all_results.extend(local_results)
 
                 if local_results:
@@ -1002,7 +1003,7 @@ URL: {url}
 
         return self.parse_json_response(response)
 
-    async def _execute_local_search(self, query: str, top_k: int = 10) -> List[Dict]:
+    async def _execute_local_search(self, query: str, top_k: int = 10, kb_id: str = None) -> List[Dict]:
         """
         执行本地知识库搜索 - 使用 Milvus 向量检索
 
@@ -1013,22 +1014,22 @@ URL: {url}
         Returns:
             搜索结果列表
         """
+        if not kb_id:
+            raise ValueError("本地搜索需要指定知识库。")
         if not self.milvus_service or not MILVUS_AVAILABLE:
-            self.logger.warning("Milvus service not available for local search")
-            return []
+            raise RuntimeError("本地知识库服务不可用，请检查 Milvus 连接。")
 
         try:
             # 生成查询向量
-            query_vector = generate_embedding(query)
+            query_vector = await asyncio.to_thread(generate_embedding, query)
             if not query_vector:
-                self.logger.error("Failed to generate embedding for query")
-                return []
+                raise RuntimeError("查询向量生成失败，请检查 Embedding 配置。")
 
             self.logger.info(f"Executing local knowledge base search: {query[:50]}...")
 
-            # 搜索所有知识库（collection_name = "knowledge_base"）
-            results = self.milvus_service.search(
-                collection_name="knowledge_base",
+            results = await asyncio.to_thread(
+                self.milvus_service.search,
+                collection_name=knowledge_collection(kb_id),
                 query_vector=query_vector,
                 top_k=top_k
             )
@@ -1055,7 +1056,7 @@ URL: {url}
 
         except Exception as e:
             self.logger.error(f"Local search error for '{query}': {e}")
-            return []
+            raise RuntimeError("本地知识库检索失败，请检查 Milvus 和 Embedding 配置。") from e
 
     async def _execute_search(self, query: str, count: int = 10) -> List[Dict]:
         """执行网络搜索 - 使用 Bocha Web Search API"""

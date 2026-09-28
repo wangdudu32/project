@@ -42,42 +42,42 @@ class AgentsConfig:
     """所有 Agent 的配置"""
     # 规划师 - 分析问题，生成研究大纲
     architect: AgentModelConfig = field(default_factory=lambda: AgentModelConfig(
-        model="deepseek-v3.2",
+        model=os.getenv("ARCHITECT_MODEL", os.getenv("RESEARCH_MODEL", "deepseek-v3.2")),
         temperature=0.7,
         max_tokens=4000
     ))
 
     # 侦察员 - 深度搜索（使用较快的模型）
     scout: AgentModelConfig = field(default_factory=lambda: AgentModelConfig(
-        model="qwen-plus",  # 搜索阶段用快速模型
+        model=os.getenv("SCOUT_MODEL", os.getenv("RESEARCH_MODEL", "qwen-plus")),  # 搜索阶段用快速模型
         temperature=0.5,
         max_tokens=4000
     ))
 
     # 数据分析师 - 数据提取和分析
     data_analyst: AgentModelConfig = field(default_factory=lambda: AgentModelConfig(
-        model="deepseek-v3.2",
+        model=os.getenv("DATA_ANALYST_MODEL", os.getenv("RESEARCH_MODEL", "deepseek-v3.2")),
         temperature=0.3,
         max_tokens=8000
     ))
 
     # 代码极客 - 代码生成和图表绘制
     wizard: AgentModelConfig = field(default_factory=lambda: AgentModelConfig(
-        model="deepseek-v3.2",
+        model=os.getenv("WIZARD_MODEL", os.getenv("RESEARCH_MODEL", "deepseek-v3.2")),
         temperature=0.3,
         max_tokens=8000
     ))
 
     # 审核大师 - 对抗式审核
     critic: AgentModelConfig = field(default_factory=lambda: AgentModelConfig(
-        model="deepseek-v3.2",
+        model=os.getenv("CRITIC_MODEL", os.getenv("RESEARCH_MODEL", "deepseek-v3.2")),
         temperature=0.5,
         max_tokens=4000
     ))
 
     # 首席写手 - 报告撰写
     writer: AgentModelConfig = field(default_factory=lambda: AgentModelConfig(
-        model="deepseek-v3.2",
+        model=os.getenv("WRITER_MODEL", os.getenv("RESEARCH_MODEL", "deepseek-v3.2")),
         temperature=0.7,
         max_tokens=16000
     ))
@@ -113,14 +113,14 @@ class LLMConfig:
     api_key: str = field(default_factory=lambda: os.getenv("DASHSCOPE_API_KEY", ""))
     base_url: str = field(default_factory=lambda: os.getenv(
         "LLM_BASE_URL",
-        "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
     ))
 
     # 搜索 API
     search_api_key: str = field(default_factory=lambda: os.getenv("BOCHA_API_KEY", ""))
 
     # 默认模型（用于未单独配置的场景）
-    default_model: str = "deepseek-v3.2"
+    default_model: str = field(default_factory=lambda: os.getenv("RESEARCH_MODEL", "deepseek-v3.2"))
 
     # Agent 配置
     agents: AgentsConfig = field(default_factory=AgentsConfig)

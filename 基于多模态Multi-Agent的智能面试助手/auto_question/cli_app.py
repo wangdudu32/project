@@ -1,96 +1,48 @@
+"""命令行生成题目，结果保存到同一个面试记录库。"""
 import argparse
-import sys
-import os
 import json
-import asyncio
+import shutil
+import sys
 from pathlib import Path
-from rich.console import Console
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.syntax import Syntax
-from rich.markdown import Markdown
+from uuid import uuid4
 
-# Add current directory to path to ensure imports work
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'backend'))
+from app.agent.tools import pdf_page_count
+from app.config import get_settings
+from app.interview import InterviewService
+from app.llm import ModelError, create_model
+from app.models import QuestionRequest
+from app.storage import Storage
 
-from backend.app.agent.graph import app as agent_app
-
-console = Console()
-
-async def process_pdf(pdf_path: str, num_questions: int = 3):
-    """
-    Process the PDF and generate questions using the Agent
-    """
-    if not os.path.exists(pdf_path):
-        console.print(f"[red]Error: File {pdf_path} not found![/red]")
-        return
-
-    console.print(Panel.fit(f"[bold blue]Processing PDF:[/bold blue] {pdf_path}", title="Mini Qwen Auto Question"))
-
-    inputs = {"pdf_path": pdf_path, "num_questions": num_questions}
-    
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True,
-        ) as progress:
-            task = progress.add_task(description="Initializing Agent...", total=None)
-            
-            progress.update(task, description="Parsing PDF and Analyzing Content...")
-            
-            result = await agent_app.ainvoke(inputs)
-            
-            progress.update(task, description="Generating and Reviewing Questions...")
-            
-        questions = result.get("final_questions", [])
-        
-        if not questions:
-            console.print("[yellow]No questions were generated. Please check the PDF content or try again.[/yellow]")
-            return
-
-        console.print(f"\n[bold green]Successfully generated {len(questions)} questions![/bold green]\n")
-
-        for idx, q in enumerate(questions, 1):
-            q_text = q.get('question', 'N/A')
-            difficulty = q.get('difficulty', 'medium')
-            diff_color = "green" if difficulty == "easy" else "yellow" if difficulty == "medium" else "red"
-            
-            content = f"[bold]Question {idx}[/bold] ([{diff_color}]{difficulty}[/{diff_color}])\n\n"
-            content += f"{q_text}\n\n"
-            
-            if q.get('type') == 'multiple_choice':
-                options = q.get('options', [])
-                for opt in options:
-                    content += f"- {opt}\n"
-            
-            content += f"\n[bold cyan]Answer:[/bold cyan] {q.get('answer', 'N/A')}\n"
-            content += f"[bold cyan]Analysis:[/bold cyan] {q.get('analysis', 'N/A')}\n"
-            
-            if 'verification' in q:
-                v = q['verification']
-                v_status = "[green]PASS[/green]" if v.get('valid') else "[red]FAIL[/red]"
-                content += f"\n[bold magenta]Math Verification:[/bold magenta] {v_status}"
-                if v.get('valid'):
-                    content += f" (Verified equations: {', '.join(v.get('verified_equations', []))})"
-
-            console.print(Panel(content, border_style="blue"))
-            console.print("\n")
-            
-    except Exception as e:
-        console.print(f"[bold red]An error occurred:[/bold red] {str(e)}")
-        import traceback
-        traceback.print_exc()
 
 def main():
-    parser = argparse.ArgumentParser(description="Mini Qwen Auto Question CLI")
-    parser.add_argument("pdf_path", help="Path to the PDF file")
-    parser.add_argument("--num", type=int, default=3, help="Number of questions to generate (default: 3)")
-    
+    parser = argparse.ArgumentParser(description='根据 PDF 创建面试，随后可在网页历史记录中作答')
+    parser.add_argument('pdf_path', type=Path)
+    parser.add_argument('--num', type=int, default=3, choices=range(1, 11))
+    parser.add_argument('--difficulty', choices=['easy', 'medium', 'hard'], default='medium')
+    parser.add_argument('--language', choices=['zh', 'en'], default='zh')
     args = parser.parse_args()
-    
-    # Run async main loop
-    asyncio.run(process_pdf(args.pdf_path, args.num))
+    settings = get_settings()
+    source = args.pdf_path.resolve()
+    try:
+        if source.suffix.lower() != '.pdf' or not source.is_file():
+            raise ValueError('请指定存在的 PDF 文件。')
+        if source.stat().st_size > settings.max_upload_mb * 1024 * 1024:
+            raise ValueError(f'文件不能超过 {settings.max_upload_mb} MB。')
+        pages = pdf_page_count(source, settings.max_pdf_pages)
+        storage = Storage(settings.storage_dir)
+        document_id = uuid4().hex
+        path = settings.storage_dir / 'uploads' / f'{document_id}.pdf'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, path)
+        storage.add_document({'id': document_id, 'filename': source.name, 'path': str(path), 'pages': pages})
+        service = InterviewService(storage, create_model(settings), settings)
+        result = service.generate(QuestionRequest(document_id=document_id, num_questions=args.num,
+                                                  difficulty=args.difficulty, language=args.language))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except (ValueError, OSError, ModelError) as exc:
+        parser.exit(1, f'生成失败：{exc}\n')
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()

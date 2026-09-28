@@ -1,0 +1,7 @@
+-r requirements.txt
+torch>=2.5,<3
+torchvision>=0.20,<1
+transformers>=4.49,<5
+accelerate>=1,<2
+qwen-vl-utils>=0.0.10,<1
+peft>=0.14,<1

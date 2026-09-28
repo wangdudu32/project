@@ -27,12 +27,16 @@ const state = proxyWithPersist({
 
   initialState: {
     chatting: false,
+    selectedKnowledgeBaseId: '',
     // 搜索模式: 'web' = 深度搜索(网络), 'local' = 本地知识库
     searchModes: [] as SearchMode[],
   },
 })
 
 const actions = {
+  setKnowledgeBase(id: string) {
+    state.selectedKnowledgeBaseId = id
+  },
   setChatting(chatting: boolean) {
     state.chatting = chatting
   },

@@ -148,6 +148,10 @@ export function Nav() {
       </div>
 
       <div className="base-layout-nav">
+        <a className="base-layout-nav__item" href={import.meta.env.VITE_INTERVIEW_URL || 'http://localhost:5173'} target="_blank" rel="noreferrer">
+          <img className="base-layout-nav__item-icon" src={IconNewChat} alt="" />
+          <span className="base-layout-nav__item-label">模拟面试</span>
+        </a>
         {items.map(({ key, onClick, ...item }) => (
           <NavItem
             key={key}

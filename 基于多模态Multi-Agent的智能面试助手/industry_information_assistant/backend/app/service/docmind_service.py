@@ -247,7 +247,8 @@ def process_document_with_docmind(
     file_path: str,
     file_name: str,
     index_name: str,
-    chunk_size: int = 500
+    chunk_size: int = 500,
+    document_id: str = None,
 ) -> Dict[str, Any]:
     """
     使用 DocMind 处理文档
@@ -255,7 +256,7 @@ def process_document_with_docmind(
     Args:
         file_path: 文件路径
         file_name: 文件名
-        index_name: ES 索引名
+        index_name: Milvus 集合名称
         chunk_size: 切片大小
 
     Returns:
@@ -323,11 +324,11 @@ def process_document_with_docmind(
         print(f"向量生成完成，维度: {len(embeddings[0])}")
 
         # 6. 构建 Milvus 文档
-        doc_id = hashlib.md5(file_name.encode()).hexdigest()
+        doc_id = document_id or hashlib.md5(file_name.encode()).hexdigest()
         documents = []
 
         for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-            chunk_id = hashlib.md5(f"{file_name}_{i}_{chunk[:50]}".encode()).hexdigest()
+            chunk_id = hashlib.md5(f"{doc_id}_{i}_{chunk[:50]}".encode()).hexdigest()
 
             doc = {
                 "id": chunk_id,

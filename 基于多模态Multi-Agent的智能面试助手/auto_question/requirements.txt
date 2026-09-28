@@ -1,0 +1,8 @@
+# 本地推理和训练依赖；在线模式只需 backend/requirements.txt。
+-r backend/requirements-local.txt
+datasets>=3,<4
+trl>=0.15,<0.16
+wandb>=0.19,<1
+pandas>=2,<3
+modelscope>=1.20,<2
+openai>=1,<3

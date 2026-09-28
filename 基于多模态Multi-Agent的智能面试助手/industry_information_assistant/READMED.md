@@ -1,3 +1,5 @@
+> 启动步骤和当前功能请优先查看项目根目录 [README](../README.md)。
+
 # 行业信息助手 (Industry Information Assistant)
 
 一个基于 AI 的深度研究助手，支持智能搜索、知识图谱、数据可视化等功能。
@@ -118,7 +120,7 @@ pip install -r requirements.txt
 python app/app_main.py
 ```
 
-后端默认运行在 `http://localhost:8000`
+后端默认运行在 `http://localhost:8001`
 
 ### 5. 安装前端依赖 & 启动
 
@@ -132,7 +134,7 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-前端默认运行在 `http://localhost:5173/login`
+前端默认运行在 `http://localhost:5183/login`
 
 ---
 
@@ -272,7 +274,7 @@ docker compose down -v
 
 ```bash
 cd backend
-curl -X POST "http://localhost:8000/documents/upload" \
+curl -X POST "http://localhost:8001/documents/upload" \
   -H "Content-Type: multipart/form-data" \
   -F "file=@./test/test_doc.pdf"
 ```
@@ -369,4 +371,4 @@ industry_information_assistant/
 
 ## API 文档
 
-启动后端后访问：`http://localhost:8000/docs`
+启动后端后访问：`http://localhost:8001/docs`

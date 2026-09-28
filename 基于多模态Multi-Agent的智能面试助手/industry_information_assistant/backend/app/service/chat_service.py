@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional, Generator
 import uuid
 from openai import OpenAI
 import numpy as np
-from llama_index.core.data_structs import Node
+from llama_index.core.schema import TextNode as Node
 from llama_index.core.schema import NodeWithScore
 from llama_index.postprocessor.dashscope_rerank import DashScopeRerank
 import tiktoken
@@ -375,4 +375,4 @@ class ChatService:
                 "content": str(e)
             }
             json_error_message = json.dumps(error_message)
-            yield f"event: error\ndata: {json_error_message}\n\n" 
+            yield f"event: error\ndata: {json_error_message}\n\n"

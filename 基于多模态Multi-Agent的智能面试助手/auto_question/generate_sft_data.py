@@ -9,11 +9,12 @@ import torch
 from PIL import Image
 import pandas as pd
 from tqdm import tqdm
+from backend.app.config import get_settings, project_path
 
 # Configuration
-DATA_DIR = "data/sft"
-OUTPUT_FILE = "data/sft_generated_qgen.jsonl"
-MODEL_PATH = "/home/fx/cql/auto_question/models/qwen2.5vl"
+DATA_DIR = str(project_path("data/sft"))
+OUTPUT_FILE = str(project_path("data/sft_generated_qgen.jsonl"))
+MODEL_PATH = get_settings().model_path
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 

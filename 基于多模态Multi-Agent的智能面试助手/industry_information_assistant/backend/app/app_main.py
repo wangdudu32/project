@@ -5,10 +5,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from pathlib import Path
+import os
 import logging
 
 # 加载环境变量
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -101,4 +103,4 @@ async def hello_world():
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=os.getenv("BACKEND_HOST", "127.0.0.1"), port=int(os.getenv("BACKEND_PORT", "8001")))

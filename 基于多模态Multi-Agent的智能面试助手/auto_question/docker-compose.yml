@@ -1,23 +1,29 @@
-version: '3.8'
-
 services:
   backend:
     build:
       context: .
       dockerfile: deployment/Dockerfile.backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend/uploads:/app/uploads
-      - /archive/share/cql/LLM-FoR-ALL/mini_vlm/models/qwen2.5vl:/archive/share/cql/LLM-FoR-ALL/mini_vlm/models/qwen2.5vl # Mount model if needed
+    env_file: .env
     environment:
-      - USE_MOCK_MODEL=True # Change to False if GPU available
-
+      MODEL_PROVIDER: remote
+      STORAGE_DIR: /app/backend/storage
+    volumes:
+      - ./backend/storage:/app/backend/storage
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
   frontend:
     build:
       context: .
       dockerfile: deployment/Dockerfile.frontend
+      args:
+        VITE_RESEARCH_URL: ${VITE_RESEARCH_URL:-http://localhost:5183}
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy

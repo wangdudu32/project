@@ -1,54 +1,19 @@
-# 行业信息助手 - 前端
+# 行业助手前端
 
-## 快速开始
-
-### 环境要求
-- Node.js >= 18
-- npm >= 9
-
-### 安装与运行
+React + TypeScript + Ant Design，使用 Node.js 22。
 
 ```bash
-# 1. 安装依赖
-npm install --legacy-peer-deps
-
-# 2. 启动开发服务器
+cp .env.example .env
+npm ci
 npm run dev
 ```
 
-启动成功后访问 http://localhost:5173/
-
-### 常见问题
-
-#### macOS/Linux 权限问题
-
-如果遇到 `Permission denied` 错误，运行：
+默认访问 http://localhost:5183，后端默认在 8001 端口。
+可以在 `.env` 中修改代理地址和面试助手入口。
+依赖中有旧版 React peer 声明，项目的 `.npmrc` 已配置兼容安装方式。
 
 ```bash
-chmod +x node_modules/.bin/*
+npm run build
 ```
 
-然后重新执行 `npm run dev`
-
-#### Windows 用户
-
-如遇权限问题，请以管理员身份运行终端。
-
----
-
-## 技术栈
-
-- React 19
-- TypeScript
-- Vite
-- Ant Design 5
-- React Router 6
-
-## 可用命令
-
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | 启动开发服务器 |
-| `npm run build` | 构建生产版本 |
-| `npm run preview` | 预览生产版本 |
-| `npm run lint` | 运行代码检查 |
+完整启动步骤见 [项目 README](../../README.md)。

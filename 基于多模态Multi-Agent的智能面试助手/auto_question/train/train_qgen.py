@@ -6,15 +6,16 @@ import torch
 import wandb
 from trl import SFTConfig, SFTTrainer
 from functools import partial
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig
 from datasets import load_dataset
 from utils.utils import find_files, collate_func, clear_memory
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+from backend.app.config import get_settings, project_path
 
 # Configuration
-MODEL_PATH = "/home/fx/cql/auto_question/models/qwen2.5vl"
-DATA_PATH = "data/sft_generated_qgen.parquet" 
-OUTPUT_PATH = "results/qgen-sft"
+MODEL_PATH = get_settings().model_path
+DATA_PATH = str(project_path(os.getenv("SFT_DATA_PATH", "data/sft_generated_qgen.parquet")))
+OUTPUT_PATH = str(project_path(os.getenv("SFT_OUTPUT_PATH", "results/qgen-sft")))
 
 def format_data_qgen(sample):
     system_message = """You are an expert interviewer for Large Language Model (LLM) engineer positions.
@@ -99,8 +100,7 @@ def main():
             target_modules=["q_proj", "v_proj"],
             task_type="CAUSAL_LM",
         )
-        model = get_peft_model(model, peft_config)
-        model.print_trainable_parameters()
+        # 由 SFTTrainer 根据 peft_config 添加 LoRA，避免重复包装。
         
         # Training Args
         training_args = SFTConfig(
@@ -135,16 +135,18 @@ def main():
             eval_dataset=eval_dataset,
             data_collator=collate_fn,
             peft_config=peft_config,
-            tokenizer=processor.tokenizer,
+            processing_class=processor,
         )
         
         print("Starting training...")
         trainer.train()
         trainer.save_model()
+        processor.save_pretrained(OUTPUT_PATH)
         print(f"Model saved to {OUTPUT_PATH}")
         
     except Exception as e:
         print(f"An error occurred: {e}")
+        raise
 
 if __name__ == "__main__":
     main()

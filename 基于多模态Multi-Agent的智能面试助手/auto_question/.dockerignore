@@ -1,0 +1,12 @@
+.env*
+.venv
+**/node_modules
+**/dist
+**/__pycache__
+backend/storage
+backend/uploads
+backend/temp_images
+models
+results
+data
+.git

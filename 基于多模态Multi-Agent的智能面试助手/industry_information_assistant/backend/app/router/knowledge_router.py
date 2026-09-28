@@ -13,6 +13,7 @@ from core.database import get_db
 from models.knowledge import KnowledgeBase, Document
 from models.user import User
 from router.auth_router import get_current_user_required
+from service.knowledge_collection import knowledge_collection
 from schemas.knowledge import (
     KnowledgeBaseCreate,
     KnowledgeBaseUpdate,
@@ -72,15 +73,15 @@ def doc_to_response(doc: Document) -> DocumentResponse:
     )
 
 
-async def process_document(document_id: str, file_path: str, kb_name: str, db_session_factory):
-    """后台处理文档（使用 DocMind 解析、向量化、存储到ES）"""
+def process_document(document_id: str, file_path: str, kb_id: str, db_session_factory):
+    """在线程池中解析文档、向量化并存储到 Milvus。"""
     from service.docmind_service import process_document_with_docmind
 
     # 创建新的数据库会话
     db = db_session_factory()
     try:
         # 获取文档记录
-        doc = db.query(Document).filter(Document.id == document_id).first()
+        doc = db.query(Document).filter(Document.id == UUID(document_id)).first()
         if not doc:
             return
 
@@ -89,14 +90,14 @@ async def process_document(document_id: str, file_path: str, kb_name: str, db_se
         db.commit()
 
         try:
-            # 使用知识库名称作为ES索引名
-            index_name = f"kb_{kb_name}".lower().replace(" ", "_")
+            index_name = knowledge_collection(kb_id)
 
             # 使用 DocMind 处理文档
             result = process_document_with_docmind(
                 file_path=file_path,
                 file_name=doc.filename,
                 index_name=index_name,
+                document_id=document_id,
             )
 
             if result["success"]:
@@ -281,6 +282,11 @@ async def delete_knowledge_base(
             detail="知识库不存在"
         )
 
+    from service.milvus_service import get_milvus_service
+    try:
+        get_milvus_service().drop_collection(knowledge_collection(kb.id))
+    except Exception as exc:
+        raise HTTPException(503, "向量库不可用，知识库尚未删除，请稍后重试。") from exc
     db.delete(kb)
     db.commit()
     return None
@@ -324,7 +330,9 @@ async def upload_document(
         )
 
     # 保存文件到临时目录
-    file_path = os.path.join(UPLOAD_DIR, f"{kb_uuid}_{file.filename}")
+    import uuid
+    filename = os.path.basename((file.filename or "").replace("\\", "/"))
+    file_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}{ext}")
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -341,7 +349,7 @@ async def upload_document(
     doc = Document(
         knowledge_base_id=kb_uuid,
         user_id=current_user.id,
-        filename=file.filename,
+        filename=filename,
         file_type=ext[1:] if ext else None,  # 去掉点
         file_size=file_size,
         file_path=file_path,
@@ -363,7 +371,7 @@ async def upload_document(
         process_document,
         str(doc.id),
         file_path,
-        kb.name,
+        str(kb.id),
         SessionLocal
     )
 
@@ -459,12 +467,12 @@ async def get_document_chunks(
         )
 
     # 从 Milvus 获取切片
-    collection_name = f"kb_{kb.name}".lower().replace(" ", "_")
+    collection_name = knowledge_collection(kb.id)
     print(f"[get_document_chunks] 查询切片: collection={collection_name}, filename={doc.filename}")
 
     try:
         milvus = get_milvus_service()
-        chunks = milvus.get_chunks_by_filename(collection_name, doc.filename)
+        chunks = milvus.get_chunks_by_doc_id(collection_name, str(doc.id))
         print(f"[get_document_chunks] 找到 {len(chunks)} 个切片")
     except Exception as e:
         print(f"[get_document_chunks] Milvus 查询失败: {e}")
@@ -527,6 +535,11 @@ async def delete_document(
         )
 
     # 删除文件（如果存在）
+    if doc.status in {"pending", "processing"}:
+        raise HTTPException(409, "文档正在处理中，请完成后再删除。")
+    from service.milvus_service import get_milvus_service
+    if not get_milvus_service().delete_by_doc_id(knowledge_collection(kb.id), str(doc.id)):
+        raise HTTPException(503, "向量切片删除失败，请稍后重试。")
     if doc.file_path and os.path.exists(doc.file_path):
         os.remove(doc.file_path)
 

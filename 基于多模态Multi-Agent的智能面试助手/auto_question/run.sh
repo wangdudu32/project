@@ -1,84 +1,52 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Function to display help
-show_help() {
-    echo "Mini Qwen AutoQuestion System"
-    echo "Usage: ./run.sh [OPTION]"
-    echo ""
-    echo "Options:"
-    echo "  web             Start the Web Interface (Frontend + Backend) [Default]"
-    echo "  cli <pdf_path>  Run in CLI mode to generate questions from a PDF"
-    echo "  help            Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  ./run.sh"
-    echo "  ./run.sh cli /path/to/document.pdf"
-}
-
-# Check arguments
-source /data/fx/wuli/anaconda3/etc/profile.d/conda.sh
-conda activate auto_question
-
-MODE=${1:-web}
-
-if [ "$MODE" = "help" ]; then
-    show_help
-    exit 0
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_DIR"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if [[ -x "$PROJECT_DIR/.venv/bin/python" ]]; then
+  PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
 fi
 
-if [ "$MODE" = "cli" ]; then
-    PDF_PATH=$2
-    if [ -z "$PDF_PATH" ]; then
-        echo "Error: PDF path required for CLI mode."
-        echo "Usage: ./run.sh cli <pdf_path>"
-        exit 1
-    fi
-    
-    echo "Starting CLI Mode..."
-    export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
-    python3 cli_app.py "$PDF_PATH"
-    exit 0
+MODE="${1:-web}"
+case "$MODE" in
+  help|--help|-h)
+    printf '%s\n' '用法：bash run.sh [web|backend|cli 文件.pdf --num 3]' \
+      '启动前请复制 .env.example 为 .env，并安装后端依赖和前端依赖。'
+    exit 0 ;;
+  cli)
+    shift
+    exec "$PYTHON_BIN" "$PROJECT_DIR/cli_app.py" "$@" ;;
+  backend|web) ;;
+  *)
+    printf '%s\n' '未知模式，请使用 web、backend 或 cli。'
+    exit 1 ;;
+esac
+
+export PYTHONPATH="$PROJECT_DIR/backend${PYTHONPATH:+:$PYTHONPATH}"
+if [[ "$MODE" == backend ]]; then
+  exec "$PYTHON_BIN" -m app.main
+fi
+if ! command -v npm >/dev/null 2>&1 || [[ ! -d frontend/node_modules ]]; then
+  printf '%s\n' '请安装 Node.js 22，并在 frontend 目录执行 npm ci。'
+  exit 1
 fi
 
-echo "Starting Mini Qwen AutoQuestion System (Web Mode)..."
-
+backend_pid=''
+frontend_pid=''
 cleanup() {
-    echo "Stopping processes..."
-    if [ -n "$BACKEND_PID" ]; then kill $BACKEND_PID; fi
-    if [ -n "$FRONTEND_PID" ]; then kill $FRONTEND_PID; fi
-    exit
+  trap - EXIT INT TERM
+  [[ -z "$backend_pid" ]] || kill "$backend_pid" 2>/dev/null || true
+  [[ -z "$frontend_pid" ]] || kill "$frontend_pid" 2>/dev/null || true
+  wait 2>/dev/null || true
 }
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
-trap cleanup SIGINT
-
-echo "=== Setting up Backend ==="
-cd backend
-
-if ! pip show fastapi &> /dev/null; then
-    echo "Installing backend dependencies..."
-    pip install -r requirements.txt
-fi
-
-echo "Starting Backend Server..."
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
-BACKEND_PID=$!
-echo "Backend started with PID $BACKEND_PID"
-
-echo "=== Setting up Frontend ==="
-cd ../frontend
-if [ ! -d "node_modules" ]; then
-    echo "Installing frontend dependencies..."
-    npm install
-fi
-
-echo "Starting Frontend Server..."
-npm run dev -- --host &
-FRONTEND_PID=$!
-echo "Frontend started with PID $FRONTEND_PID"
-
-echo "System is running!"
-echo "Backend: http://localhost:8000"
-echo "Frontend: http://localhost:5173" 
-
-wait
+"$PYTHON_BIN" -m app.main &
+backend_pid=$!
+(cd "$PROJECT_DIR/frontend" && exec npm run dev) &
+frontend_pid=$!
+printf '%s\n' '面试服务正在启动，访问地址见下方日志。按 Ctrl+C 停止。'
+wait -n "$backend_pid" "$frontend_pid"

@@ -122,6 +122,7 @@ class ResearchState(TypedDict):
     # 搜索模式配置
     search_web: bool                        # 是否启用网络搜索
     search_local: bool                      # 是否启用本地知识库搜索
+    kb_id: str | None                       # 经过路由层验证的知识库 ID
 
     # 规划输出
     outline: List[Dict[str, Any]]           # 动态大纲 (Section序列化)
@@ -162,7 +163,8 @@ def create_initial_state(
     query: str,
     session_id: str,
     search_web: bool = True,
-    search_local: bool = False
+    search_local: bool = False,
+    kb_id: str | None = None,
 ) -> ResearchState:
     """创建初始状态
 
@@ -180,6 +182,7 @@ def create_initial_state(
         max_iterations=3,
         search_web=search_web,
         search_local=search_local,
+        kb_id=kb_id,
         outline=[],
         mind_map={},
         key_entities=[],

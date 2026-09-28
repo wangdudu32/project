@@ -17,9 +17,9 @@ class ServiceConfig:
         """
         return {
             'base_url': os.environ.get('API_BASE_URL', 'http://localhost:9380'),
-            'api_key': os.environ.get('API_KEY', 'ragflow-FiZjAzYTVjMWM1YTExZjA4MGFmNTZlOT'),
-            'default_dataset_id': os.environ.get('DEFAULT_DATASET_ID', '5299f1501c5a11f0a5ea56e92569c6d7'),
-            'serper_api_key': os.environ.get('SERPER_API_KEY', '485a749de588ba9426d5de22f4ca1614a70e2e28'),
+            'api_key': os.environ.get('API_KEY', ''),
+            'default_dataset_id': os.environ.get('DEFAULT_DATASET_ID', ''),
+            'serper_api_key': os.environ.get('SERPER_API_KEY', ''),
             'milvus_host': os.environ.get('MILVUS_HOST', 'localhost'),
             'milvus_port': int(os.environ.get('MILVUS_PORT', '19530')),
             'policy_collection': os.environ.get('POLICY_COLLECTION', 'policy_documents'),

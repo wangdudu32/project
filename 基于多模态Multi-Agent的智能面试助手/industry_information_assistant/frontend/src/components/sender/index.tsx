@@ -6,10 +6,11 @@
 import IconFile from '@/assets/component/file.svg'
 import IconSend from '@/assets/component/send.svg'
 import { deviceActions, deviceState, SearchMode } from '@/store/device'
-import { Button, Input, Space, Dropdown, Checkbox, Tag } from 'antd'
+import { Button, Input, Space, Dropdown, Checkbox, Tag, Select, message } from 'antd'
+import { knowledgeActions, knowledgeState } from '@/store/knowledge'
 import { CloseOutlined, FileOutlined, LoadingOutlined, SyncOutlined, CheckCircleOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons'
 import classNames from 'classnames'
-import { PropsWithChildren, useState, useRef } from 'react'
+import { PropsWithChildren, useState, useRef, useEffect } from 'react'
 import { useSnapshot } from 'valtio'
 import { Attachment } from '@/api/session'
 import './index.scss'
@@ -46,11 +47,22 @@ export default function ComSender(
   } = props
   const [value, setValue] = useState('')
   const device = useSnapshot(deviceState)
+  const knowledge = useSnapshot(knowledgeState)
+  const usesLocalKnowledge = (device.searchModes as SearchMode[]).includes('local')
+  useEffect(() => {
+    if (usesLocalKnowledge) {
+      void knowledgeActions.fetchKnowledgeBases().catch(() => message.error('读取知识库列表失败'))
+    }
+  }, [usesLocalKnowledge])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function send() {
     if (loading) return
     if (!value && attachments.length === 0) return
+    if (usesLocalKnowledge && !knowledge.knowledgeBases.some(kb => kb.id === device.selectedKnowledgeBaseId)) {
+      message.warning('请先选择要搜索的知识库')
+      return
+    }
 
     // 过滤出已完成的附件
     const completedAttachmentIds = attachments
@@ -158,6 +170,18 @@ export default function ComSender(
         autoFocus
         onPressEnter={handlePressEnter}
       />
+
+      {usesLocalKnowledge && <Select
+        aria-label="选择知识库"
+        placeholder="选择要搜索的知识库"
+        value={device.selectedKnowledgeBaseId || undefined}
+        onChange={deviceActions.setKnowledgeBase}
+        loading={knowledge.loading}
+        disabled={loading}
+        style={{ minWidth: 220, margin: '8px 0' }}
+        options={knowledge.knowledgeBases.map(kb => ({ value: kb.id, label: kb.name }))}
+        notFoundContent="还没有知识库，请先在知识库页面上传资料"
+      />}
 
       <div className="com-sender__actions">
         <Space className="com-sender__actions-left" size={12}>

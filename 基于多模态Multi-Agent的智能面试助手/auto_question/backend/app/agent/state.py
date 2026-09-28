@@ -1,20 +1,13 @@
-from typing import TypedDict, List, Annotated, Any, Dict
-import operator
+from typing import TypedDict
 
-class QuestionItem(TypedDict):
-    question: str
-    answer: str
-    analysis: str
-    difficulty: str
-    type: str
-    image_path: str
-    feedback: str
-    status: str
 
 class AgentState(TypedDict):
     pdf_path: str
+    output_dir: str
     num_questions: int
-    pdf_images: List[str]
-    draft_questions: List[QuestionItem]
-    final_questions: List[QuestionItem]
+    difficulty: str
+    language: str
+    pdf_images: list[dict]
+    draft_questions: list[dict]
+    final_questions: list[dict]
     iteration: int

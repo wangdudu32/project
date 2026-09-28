@@ -13,7 +13,7 @@ import os
 from typing import List, Optional, Tuple
 import numpy as np
 from openai import OpenAI
-from llama_index.core.data_structs import Node
+from llama_index.core.schema import TextNode as Node
 from llama_index.core.schema import NodeWithScore
 from llama_index.postprocessor.dashscope_rerank import DashScopeRerank
 

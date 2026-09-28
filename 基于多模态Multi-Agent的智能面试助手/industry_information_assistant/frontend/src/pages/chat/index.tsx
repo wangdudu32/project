@@ -235,6 +235,7 @@ export default function Index() {
             query: message,
             session_id: id,  // 传递会话 ID 用于检查点保存
             search_modes: deviceState.searchModes as string[],  // 传递搜索模式
+            kb_id: deviceState.selectedKnowledgeBaseId || undefined,
           })
         } else if (attachmentIds && attachmentIds.length > 0) {
           // 使用带附件的聊天接口

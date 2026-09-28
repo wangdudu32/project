@@ -90,7 +90,8 @@ class DeepResearchV2Service:
         resume: bool = False,
         user_id: Optional[str] = None,
         search_web: bool = True,
-        search_local: bool = False
+        search_local: bool = False,
+        kb_id: str = None,
     ) -> AsyncGenerator[str, None]:
         """
         执行深度研究（SSE 流式输出）
@@ -122,7 +123,8 @@ class DeepResearchV2Service:
                 resume=resume,
                 user_id=user_id,
                 search_web=search_web,
-                search_local=search_local
+                search_local=search_local,
+                kb_id=kb_id,
             ):
                 # 转换为 SSE 格式
                 yield self._format_sse(event)

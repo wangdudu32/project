@@ -130,6 +130,8 @@ export function deepsearch(
   params: {
     query: string
     session_id?: string
+    kb_id?: string
+    max_iterations?: number
     search_modes?: string[]  // 搜索模式: 'web' = 网络搜索, 'local' = 本地知识库
   },
   options?: AxiosRequestConfig,

@@ -3,6 +3,7 @@
 
 """Milvus 向量存储服务"""
 import os
+import json
 from typing import List, Dict, Any, Optional
 from pymilvus import (
     connections,
@@ -271,7 +272,7 @@ class MilvusService:
             collection.load()
 
             # 查询表达式
-            expr = f'filename == "{filename}"'
+            expr = f'filename == {json.dumps(filename)}'
 
             results = collection.query(
                 expr=expr,
@@ -286,6 +287,22 @@ class MilvusService:
         except Exception as e:
             print(f"查询切片失败: {e}")
             return []
+
+    def get_chunks_by_doc_id(self, collection_name: str, doc_id: str, limit: int = 1000) -> List[Dict[str, Any]]:
+        if not utility.has_collection(collection_name):
+            return []
+        collection = Collection(collection_name)
+        collection.load()
+        results = collection.query(
+            expr=f'doc_id == {json.dumps(doc_id)}',
+            output_fields=["id", "doc_id", "kb_id", "filename", "content", "chunk_index"],
+            limit=limit,
+        )
+        return sorted(results, key=lambda chunk: chunk.get("chunk_index", 0))
+
+    def drop_collection(self, collection_name: str):
+        if utility.has_collection(collection_name):
+            utility.drop_collection(collection_name)
 
 
 # 单例实例

@@ -297,7 +297,8 @@ class DeepResearchGraph:
         resume: bool = False,
         user_id: str = None,
         search_web: bool = True,
-        search_local: bool = False
+        search_local: bool = False,
+        kb_id: str = None,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         执行研究流程（流式输出）
@@ -330,7 +331,8 @@ class DeepResearchGraph:
             state = create_initial_state(
                 query, session_id,
                 search_web=search_web,
-                search_local=search_local
+                search_local=search_local,
+                kb_id=kb_id,
             )
             state["max_iterations"] = self.max_iterations
 

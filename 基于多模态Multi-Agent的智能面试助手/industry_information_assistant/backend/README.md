@@ -1,3 +1,5 @@
+> 当前启动步骤见 [根目录 README](../../README.md)。下方旧接口示例仅供参考，研究接口需要登录。
+
 # 项目启动
 ## 启动中间件
 cd backend
@@ -44,21 +46,21 @@ python app/app_main.py
 ### 上传文档,用于本地知识库的查询
 ```sh
 cd backend
-curl -X POST "http://localhost:8000/documents/upload"   -H "Content-Type: multipart/form-data"   -F "file=@./test/test_doc.pdf"
+curl -X POST "http://localhost:8001/documents/upload"   -H "Content-Type: multipart/form-data"   -F "file=@./test/test_doc.pdf"
 
 {"status":"success","message":"成功处理 25 个切片","document_count":25}
 ```
 
 ### 创建会话
 ```sh
-curl -s -X POST http://localhost:8000/chat/session
+curl -s -X POST http://localhost:8001/chat/session
 
 {"session_id":"02c32f19-b7f0-42ea-b3c1-7d2bc148c21b","created_at":1751194296,"updated_at":1751194296,"message_count":0}
 ```
 
 ### 问答
 ```sh
-curl -N -X POST http://localhost:8000/chat/completion \
+curl -N -X POST http://localhost:8001/chat/completion \
   -H "Content-Type: application/json" \
   -H "Accept: text/event-stream" \
   -d "{
@@ -71,7 +73,7 @@ curl -N -X POST http://localhost:8000/chat/completion \
 
 ### deepseach
 ```sh
-curl -N -X POST "http://localhost:8000/research/stream" \
+curl -N -X POST "http://localhost:8001/research/stream" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "安责险在矿山行业的应用现状、面临的主要挑战以及改进建议有哪些？",

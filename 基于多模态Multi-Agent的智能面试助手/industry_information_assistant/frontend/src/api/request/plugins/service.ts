@@ -22,7 +22,7 @@ export const servicePlugin: IRequestPlugin = {
         if (!(CODE_KEY in data)) return response
 
         const code = data[CODE_KEY]
-        if (code !== 'success') {
+        if (code === 'error' || code === 'failed') {
           const message =
             data[MESSAGE_KEY] || data.detail || 'API data exception'
           const error = new ResponseError(message, response)
