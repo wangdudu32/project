@@ -1,46 +1,23 @@
 import os
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_openai import ChatOpenAI
-from dotenv import load_dotenv
-load_dotenv()
+import config  # 先加载 .env
 
 
-def call_llm(user_query: str, system_instruction: str):
-    """调用LLM"""
+def call_llm(user_query: str, system_instruction: str, history=None):
+    """明确区分系统消息、历史消息和当前问题。异常交给上层处理。"""
+    if not config.AI_ENABLED or not os.getenv("DASHSCOPE_API_KEY"):
+        raise RuntimeError("AI 服务未启用或未配置密钥")
+    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+    from langchain_openai import ChatOpenAI
 
-    try:
-        # 1. 定义环境变量
-        api_key = os.getenv("DASHSCOPE_API_KEY")
-        base_url = os.getenv("DASHSCOPE_API_BASE")
-        model_name = os.getenv("LLM_MODE")
-
-        # 2. 定义提示词模版对象
-        chat_prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "{system_instruction}"),
-            ("human", "{user_query}")
-        ])
-
-        # 3. 定义LLM实例
-        llm = ChatOpenAI(api_key=api_key, base_url=base_url, model=model_name)
-
-        # 4. 定义链Chain
-        chain = (
-                {
-                    "system_instruction": RunnablePassthrough(),
-                    "user_query": RunnablePassthrough()
-                }
-                | chat_prompt_template
-                | llm
-        )
-
-        # 5.调用Chain
-        llm_response = chain.invoke({"system_instruction": system_instruction, "user_query": user_query})
-
-        # 6.返回结果
-
-        return llm_response.content  # 模型的输出内容在AIMessage对象的content中
-
-    except Exception as e:
-        return  f"LLM模型调用失败,原因{e}"
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "{instruction}"), MessagesPlaceholder("history"), ("human", "{query}")
+    ])
+    llm = ChatOpenAI(api_key=os.environ["DASHSCOPE_API_KEY"],
+                     base_url=os.getenv("DASHSCOPE_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+                     model=os.getenv("LLM_MODE", "qwen2.5-14b-instruct"), timeout=20, max_retries=0)
+    messages = [("human" if item["role"] == "user" else "ai", item["content"]) for item in (history or [])[-10:]]
+    result = (prompt | llm).invoke({"instruction": system_instruction, "query": user_query, "history": messages})
+    if not isinstance(result.content, str) or not result.content.strip():
+        raise RuntimeError("模型没有返回有效文字")
+    return result.content.strip()[:4000]

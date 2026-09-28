@@ -24,6 +24,14 @@ industry_information_assistant/
   frontend/           行业助手页面
 ```
 
+根目录的 `requirements.txt` 汇总两个后端的运行依赖，`requirement.txt` 也指向同一份清单。若需要在同一个 Python 3.12 虚拟环境中运行两个后端，可激活环境后在项目根目录执行：
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+仅运行一个模块时，按下方步骤安装该模块的依赖即可。本地模型、训练和测试依赖按需单独安装；前端依赖仍需在各自的 `frontend` 目录执行 `npm ci`。
+
 ## 启动面试助手
 
 准备 Python 3.12 和 Node.js 22。下面的命令适用于 Linux/macOS，从项目根目录执行。

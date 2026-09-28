@@ -1,639 +1,893 @@
+<script setup>
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { ElMessage } from "element-plus";
+import api, { money } from "./api";
+import AuthDialog from "./components/AuthDialog.vue";
+import AssistantPanel from "./components/AssistantPanel.vue";
+import DeliveryPanel from "./components/DeliveryPanel.vue";
+import CartPanel from "./components/CartPanel.vue";
+import OrdersPanel from "./components/OrdersPanel.vue";
+import AdminPanel from "./components/AdminPanel.vue";
+
+const settings = ref({
+  restaurant_name: "小满餐厅",
+  restaurant_hours: "每天 09:00-22:00",
+});
+const user = ref(null);
+const authVisible = ref(false);
+const tab = ref("menu");
+const menu = ref([]);
+const loading = ref(true);
+const menuError = ref("");
+const search = ref("");
+const category = ref("全部");
+const highlighted = ref([]);
+const cart = ref({ items: [], total_amount: "0.00", total_quantity: 0 });
+const busy = ref(false);
+const cartReady = ref(false);
+const categories = computed(() => [
+  "全部",
+  ...new Set(menu.value.map((item) => item.category)),
+]);
+const filtered = computed(() =>
+  menu.value.filter(
+    (item) =>
+      (category.value === "全部" || item.category === category.value) &&
+      `${item.dish_name} ${item.description}`.includes(search.value.trim()),
+  ),
+);
+
+async function loadMenu() {
+  loading.value = true;
+  menuError.value = "";
+  try {
+    menu.value = (await api.get("/menu/list")).menu_items;
+    if (!categories.value.includes(category.value)) category.value = "全部";
+  } catch (err) {
+    menuError.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+async function loadCart() {
+  if (!user.value) return;
+  cartReady.value = false;
+  try {
+    cart.value = await api.get("/cart");
+    cartReady.value = true;
+  } catch (err) {
+    ElMessage.error(err.message);
+  }
+}
+function resetUser() {
+  user.value = null;
+  cart.value = { items: [], total_amount: "0.00", total_quantity: 0 };
+  cartReady.value = false;
+  tab.value = "menu";
+}
+async function loggedIn(value) {
+  user.value = value;
+  authVisible.value = false;
+  await loadCart();
+  ElMessage.success("登录成功");
+}
+async function logout() {
+  try {
+    await api.post("/auth/logout");
+    resetUser();
+  } catch (err) {
+    ElMessage.error(err.message);
+  }
+}
+async function quantity(dishId, value) {
+  if (!user.value) {
+    authVisible.value = true;
+    return;
+  }
+  if (busy.value || !cartReady.value) return;
+  busy.value = true;
+  try {
+    cart.value = await api.put(`/cart/${dishId}`, { quantity: value });
+  } catch (err) {
+    ElMessage.error(err.message);
+  } finally {
+    busy.value = false;
+  }
+}
+function add(item) {
+  const row = cart.value.items.find((row) => row.dish.id === item.id);
+  if (row?.quantity >= 99) {
+    ElMessage.warning("每道菜最多 99 份");
+    return;
+  }
+  quantity(item.id, (row?.quantity || 0) + 1);
+}
+async function clearCart() {
+  busy.value = true;
+  try {
+    cart.value = await api.delete("/cart");
+  } catch (err) {
+    ElMessage.error(err.message);
+  } finally {
+    busy.value = false;
+  }
+}
+async function ordered(order) {
+  ElMessage.success(`订单 #${order.id} 已提交，请完成模拟支付`);
+  tab.value = "orders";
+  await loadCart();
+}
+function navigate(value) {
+  if (value !== "menu" && !user.value) {
+    authVisible.value = true;
+    return;
+  }
+  tab.value = value;
+}
+function recommend(ids) {
+  highlighted.value = ids.map(String);
+  category.value = "全部";
+  search.value = "";
+}
+async function menuChanged() {
+  await Promise.all([loadMenu(), loadCart()]);
+}
+onMounted(async () => {
+  window.addEventListener("aimenu:unauthorized", resetUser);
+  await Promise.all([
+    loadMenu(),
+    api
+      .get("/config")
+      .then((value) => {
+        settings.value = value;
+      })
+      .catch(() => {}),
+    api
+      .get("/auth/me", { skipAuthReset: true })
+      .then(async (value) => {
+        user.value = value;
+        await loadCart();
+      })
+      .catch(() => {}),
+  ]);
+});
+onUnmounted(() => window.removeEventListener("aimenu:unauthorized", resetUser));
+</script>
+
 <template>
-  <div id="app">
-    <el-container class="main-container">
-      <el-header class="header">
-        <h1>智能点餐系统</h1>
-      </el-header>
-      
-      <el-main class="main-content">
-        <!-- 智能对话区域 -->
-        <el-card class="chat-section" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>智能点餐助手</span>
-            </div>
-          </template>
-          
-          <div class="chat-input-area">
-            <el-input
-              v-model="chatQuery"
-              type="textarea"
-              :rows="4"
-              placeholder="请输入您的需求，例如：'我想点一个不太辣的川菜'"
-              class="chat-input"
+  <div class="app-shell">
+    <header class="site-header">
+      <a class="brand" href="#" @click.prevent="tab = 'menu'"
+        ><span class="brand-mark">食</span
+        ><span
+          >{{ settings.restaurant_name
+          }}<small>智慧点餐 · 好好吃饭</small></span
+        ></a
+      >
+      <nav aria-label="主导航">
+        <button :class="{ active: tab === 'menu' }" @click="navigate('menu')">
+          点餐</button
+        ><button
+          :class="{ active: tab === 'orders' }"
+          @click="navigate('orders')"
+        >
+          我的订单</button
+        ><button
+          v-if="user?.is_admin"
+          :class="{ active: tab === 'admin' }"
+          @click="navigate('admin')"
+        >
+          商家后台
+        </button>
+      </nav>
+      <div class="account">
+        <template v-if="user"
+          ><span>{{ user.username }}</span
+          ><el-button text @click="logout">退出</el-button></template
+        ><el-button v-else type="primary" plain @click="authVisible = true"
+          >登录 / 注册</el-button
+        >
+      </div>
+    </header>
+    <main>
+      <template v-if="tab === 'menu'">
+        <section class="hero">
+          <div>
+            <span class="eyebrow">一日三餐，认真对待</span>
+            <h1>今天，也要好好吃饭。</h1>
+            <p>从喜欢的口味开始，选一份刚刚好的美味。</p>
+          </div>
+          <div class="opening">
+            <span class="status-dot"></span>{{ settings.restaurant_hours
+            }}<small>{{ settings.restaurant_address || "欢迎光临" }}</small>
+          </div>
+        </section>
+        <div class="shop-layout">
+          <div class="menu-column">
+            <AssistantPanel
+              :key="user?.id || 'guest'"
+              :ai-enabled="settings.ai_enabled"
+              @recommend="recommend"
             />
-            <el-button
-              type="primary"
-              @click="sendChatQuery"
-              :loading="chatLoading"
-              class="chat-button"
-            >
-              {{ chatLoading ? '思考中...' : '询问' }}
-            </el-button>
-          </div>
-          
-          <!-- 对话结果显示 -->
-          <div v-if="chatLoading" class="chat-loading">
-            <el-input
-              value="AI助手正在思考中，请稍候..."
-              type="textarea"
-              :rows="3"
-              readonly
-              class="chat-output"
-            />
-          </div>
-          
-          <div v-else-if="chatResponse" class="chat-response">
-            <!-- 带滚动条的格式化显示区域 -->
-            <div class="formatted-container">
-              <div v-html="formattedResponse" class="formatted-content"></div>
-            </div>
-          </div>
-        </el-card>
-
-        <!-- 配送范围查询区域 -->
-        <el-card class="delivery-section" shadow="hover" style="overflow:auto">
-          <template #header>
-            <div class="card-header">
-              <span>配送范围查询</span>
-            </div>
-          </template>
-          
-          <div class="delivery-input-area">
-            <el-input
-              v-model="deliveryAddress"
-              placeholder="请输入您的地址，例如：'北京市海淀区中关村大街1号'"
-              class="delivery-input"
-              size="large"
-            />
-            <el-select
-              v-model="travelMode"
-              placeholder="选择出行方式"
-              class="travel-select"
-              size="large"
-            >
-              <el-option label="步行距离" value="1" />
-              <el-option label="驾车距离" value="3" />
-              <el-option label="骑行距离" value="2" />
-
-            </el-select>
-            <el-button
-              type="primary"
-              @click="checkDelivery"
-              :loading="deliveryLoading"
-              class="delivery-button"
-              size="large"
-            >
-              查询配送范围
-            </el-button>
-          </div>
-          
-          <!-- 配送查询结果 -->
-          <div v-if="deliveryResponse" class="delivery-response">
-            <el-alert
-              :title="deliveryResponse.message"
-              :type="deliveryResponse.in_range ? 'success' : 'warning'"
-              :closable="false"
-              show-icon
-            />
-            <div v-if="deliveryResponse.distance" class="delivery-details">
-              <p>距离: <span style='color:red'>{{ deliveryResponse.distance.toFixed(2) }}</span> 公里</p>
-              <p>时间: <span style='color:red'>{{ Math.floor(deliveryResponse.duration/60) }}</span> 分钟 <span style='color:red'> {{ deliveryResponse.duration%60 }}</span> 秒</p>
-              <p>地址: {{ deliveryResponse.formatted_address }}</p>
-
-            </div>
-          </div>
-        </el-card>
-
-        <!-- 菜品列表区域 -->
-        <el-card class="menu-section" shadow="hover" style="overflow:auto">
-          <template #header>
-            <div class="card-header">
-              <span>菜品列表</span>
-              <el-button
-                type="primary"
-                size="small"
-                @click="loadMenuItems"
-                :loading="menuLoading"
-              >
-                刷新菜单
-              </el-button>
-            </div>
-          </template>
-          
-          <div v-if="menuItems.length > 0" class="menu-grid">
-            <div
-              v-for="item in menuItems"
-              :key="item.id"
-              class="menu-item"
-              :class="{ 'menu-item-highlighted': highlightedItems.includes(item.id.toString()) }"
-            >
-              <div class="menu-item-header">
-                <h3>{{ item.dish_name }}</h3>
-                <span class="price">{{ item.formatted_price }}</span>
-              </div>
-              <div class="menu-item-content">
-                <p class="description">{{ item.description }}</p>
-                <div class="menu-item-details">
-                  <el-tag size="small" type="info">{{ item.category }}</el-tag>
-                  <el-tag size="small" :type="getSpiceType(item.spice_level)">
-                    {{ item.spice_text }}
-                  </el-tag>
-                  <el-tag v-if="item.is_vegetarian" size="small" type="success">
-                    素食
-                  </el-tag>
-                  <el-tag 
-                    v-if="highlightedItems.includes(item.id.toString())" 
-                    size="small" 
-                    type="danger"
-                  >
-                    推荐
-                  </el-tag>
+            <section class="panel menu-panel">
+              <div class="section-heading">
+                <div>
+                  <span class="eyebrow">新鲜出品</span>
+                  <h2>
+                    今日菜单 <small>{{ menu.length }} 道菜</small>
+                  </h2>
                 </div>
+                <el-button :loading="loading" @click="loadMenu">刷新</el-button>
               </div>
-
+              <div class="menu-filters">
+                <div class="category-list">
+                  <button
+                    v-for="item in categories"
+                    :key="item"
+                    :class="{ active: category === item }"
+                    @click="category = item"
+                  >
+                    {{ item }}
+                  </button>
+                </div>
+                <el-input
+                  v-model="search"
+                  aria-label="搜索菜品"
+                  placeholder="搜索菜名"
+                  clearable
+                  class="menu-search"
+                />
+              </div>
+              <el-alert
+                v-if="menuError"
+                :title="menuError"
+                type="error"
+                :closable="false"
+                class="gap-bottom"
+              />
+              <el-skeleton v-if="loading" :rows="6" animated />
+              <div v-else-if="filtered.length" class="menu-grid">
+                <article
+                  v-for="item in filtered"
+                  :key="item.id"
+                  class="dish-card"
+                  :class="{
+                    recommended: highlighted.includes(String(item.id)),
+                  }"
+                >
+                  <div class="dish-top">
+                    <span class="dish-category">{{ item.category }}</span
+                    ><el-tag
+                      v-if="highlighted.includes(String(item.id))"
+                      size="small"
+                      type="warning"
+                      >为你推荐</el-tag
+                    >
+                  </div>
+                  <h3>{{ item.dish_name }}</h3>
+                  <p class="dish-description">
+                    {{ item.description || "美味现做，欢迎品尝。" }}
+                  </p>
+                  <div class="dish-tags">
+                    <span>{{ item.spice_text }}</span
+                    ><span v-if="item.is_vegetarian">素食</span
+                    ><span v-if="item.flavor">{{ item.flavor }}</span>
+                  </div>
+                  <p class="allergens">
+                    过敏原：{{ item.allergens || "未标注，请咨询商家" }}
+                  </p>
+                  <div class="dish-bottom">
+                    <strong class="price">{{ money(item.price) }}</strong
+                    ><el-button
+                      type="primary"
+                      plain
+                      :disabled="busy || (!!user && !cartReady)"
+                      :aria-label="`添加${item.dish_name}`"
+                      @click="add(item)"
+                      >＋ 加入</el-button
+                    >
+                  </div>
+                </article>
+              </div>
+              <el-empty v-else description="没有找到符合条件的菜品" />
+            </section>
+          </div>
+          <aside class="sidebar">
+            <div v-if="user && !cartReady" class="panel">
+              <p>购物车暂未加载</p>
+              <el-button @click="loadCart">重新加载</el-button>
             </div>
-          </div>
-          
-          <div v-else-if="!menuLoading" class="empty-menu">
-            <el-empty description="暂无菜品数据" />
-          </div>
-          
-          <div v-if="menuLoading" class="loading-menu">
-            <el-skeleton :rows="3" animated />
-          </div>
-        </el-card>
-      </el-main>
-    </el-container>
+            <CartPanel
+              v-else
+              :key="user?.id || 'guest'"
+              :cart="cart"
+              :user="user"
+              :busy="busy"
+              @quantity="quantity"
+              @clear="clearCart"
+              @ordered="ordered"
+              @login="authVisible = true"
+            /><DeliveryPanel />
+          </aside>
+        </div>
+      </template>
+      <OrdersPanel v-else-if="tab === 'orders' && user" :key="user.id" />
+      <AdminPanel
+        v-else-if="tab === 'admin' && user?.is_admin"
+        @menu-changed="menuChanged"
+      />
+    </main>
+    <footer>智慧点餐 · 本地演示项目 · 仅模拟支付，不产生真实扣款</footer>
+    <AuthDialog
+      v-if="authVisible"
+      @close="authVisible = false"
+      @success="loggedIn"
+    />
   </div>
 </template>
 
-<script>
-import { ref, onMounted, computed } from 'vue'
-import { chatAPI, deliveryAPI, menuAPI } from './api/index.js'
-
-export default {
-  name: 'App',
-  setup() {
-    // 智能对话相关
-    const chatQuery = ref('')
-    const chatResponse = ref('')
-    const chatLoading = ref(false)
-
-    // 配送查询相关
-    const deliveryAddress = ref('')
-    const travelMode = ref("2") // 默认骑行5
-    const deliveryResponse = ref(null)
-    const deliveryLoading = ref(false)
-
-
-
-    // 菜品列表相关
-    const menuItems = ref([])
-    const menuLoading = ref(false)
-    const highlightedItems = ref([]) // 存储高亮显示的菜品ID
-
-    // 格式化响应，简单处理Markdown格式
-    const formattedResponse = computed(() => {
-      if (!chatResponse.value) return '';
-      
-      // 简单的Markdown格式处理
-      let formatted = chatResponse.value
-        // 处理标题
-        .replace(/#{1,6} (.*?)$/gm, (match, p1) => {
-          const level = match.trim().split(' ')[0].length;
-          return `<h${level}>${p1}</h${level}>`;
-        })
-        // 处理粗体
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        // 处理斜体
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        // 处理无序列表
-        .replace(/^- (.*?)$/gm, '<li>$1</li>')
-        .replace(/(<li>.*?<\/li>)\n(<li>.*?<\/li>)/gs, '<ul>$1$2</ul>')
-        // 处理有序列表
-        .replace(/^\d+\. (.*?)$/gm, '<li>$1</li>')
-        // 处理段落
-        .replace(/\n\n(.*?)\n\n/gs, '<p>$1</p>')
-        // 处理换行
-        .replace(/\n/g, '<br/>');
-      
-      return formatted;
-    });
-
-    // 高亮显示推荐的菜品
-    const highlightRecommendedItems = (menuIds) => {
-      if (!menuIds || !Array.isArray(menuIds) || menuIds.length === 0) {
-        highlightedItems.value = []
-        return
-      }
-      
-      // 将菜品ID转换为字符串类型，以便于比较
-      highlightedItems.value = menuIds.map(id => id.toString())
-      
-      // 如果菜单尚未加载，则加载菜单
-      if (menuItems.value.length === 0) {
-        loadMenuItems()
-      }
-      
-      // 滚动到菜品列表区域
-      setTimeout(() => {
-        const menuSection = document.querySelector('.menu-section')
-        if (menuSection) {
-          menuSection.scrollIntoView({ behavior: 'smooth' })
-        }
-      }, 300)
-    }
-
-    // 发送智能对话请求
-    const sendChatQuery = async () => {
-      if (!chatQuery.value.trim()) {
-        return
-      }
-      
-      chatLoading.value = true
-      chatResponse.value = '' // 清空之前的响应
-      try {
-        const response = await chatAPI.sendMessage(chatQuery.value)
-        
-        // 处理不同类型的响应
-        if (response.recommendation) {
-          // 如果是菜品推荐，使用recommendation字段
-          chatResponse.value = response.recommendation
-          
-          // 如果需要，也可以在界面上显示推荐的菜品ID
-          console.log('推荐菜品ID:', response.menu_ids)
-          
-          // 可以在这里添加高亮显示推荐菜品的逻辑
-          highlightRecommendedItems(response.menu_ids)
-        } else if (response.response) {
-          // 如果是普通回复，使用response字段
-          chatResponse.value = response.response
-        } else {
-          // 兜底处理
-          chatResponse.value = '抱歉，我无法理解您的问题。'
-        }
-      } catch (error) {
-        // 修改错误提示，不显示服务不可用
-        chatResponse.value = '正在处理您的请求，请稍等片刻...'
-        console.log('智能对话请求详情:', error.message)
-      } finally {
-        chatLoading.value = false
-      }
-    }
-
-    // 检查配送范围
-    const checkDelivery = async () => {
-      if (!deliveryAddress.value.trim()) {
-        return
-      }
-      
-      deliveryLoading.value = true
-      try {
-        const response = await deliveryAPI.checkRange(deliveryAddress.value, travelMode.value)
-        deliveryResponse.value = response
-      } catch (error) {
-        deliveryResponse.value = {
-          success: false,
-          in_range: false,
-          message: '查询失败，请稍后再试',
-          distance: 0
-        }
-      } finally {
-        deliveryLoading.value = false
-      }
-    }
-
-    // 加载菜品列表
-    const loadMenuItems = async () => {
-      menuLoading.value = true
-      try {
-        const response = await menuAPI.getMenuList()
-        menuItems.value = response.menu_items || []
-      } catch (error) {
-        console.error('加载菜品失败:', error)
-        menuItems.value = []
-      } finally {
-        menuLoading.value = false
-      }
-    }
-
-    // 获取辣度标签类型
-    const getSpiceType = (level) => {
-      const types = ['', 'success', 'warning', 'danger']
-      return types[level] || ''
-    }
-
-    // 组件挂载时加载菜品
-    onMounted(() => {
-      loadMenuItems()
-    })
-
-    return {
-      chatQuery,
-      chatResponse,
-      chatLoading,
-      deliveryAddress,
-      travelMode,
-      deliveryResponse,
-      deliveryLoading,
-      menuItems,
-      menuLoading,
-      highlightedItems,
-      sendChatQuery,
-      checkDelivery,
-      loadMenuItems,
-      getSpiceType,
-      highlightRecommendedItems,
-      formattedResponse
-    }
-  }
-}
-</script>
-
 <style>
-/* 主容器样式 */
-.main-container {
-  height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
+:root {
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #292c26;
+  background: #f6f5f1;
+  --el-color-primary: #b34e2c;
+  --el-color-primary-light-3: #c7795f;
+  --el-color-primary-light-5: #d9a18e;
+  --el-color-primary-light-7: #eacec3;
+  --el-color-primary-light-8: #f0ded6;
+  --el-color-primary-light-9: #f9f0eb;
+  --el-color-primary-dark-2: #90391c;
+  --el-border-radius-base: 8px;
 }
-
-/* 头部样式 */
-.header {
-  background-color: #409EFF;
-  color: white;
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+h1 {
+  font-size: 34px;
+  letter-spacing: -1px;
+  margin-bottom: 14px;
+}
+h2 {
+  font-size: 20px;
+  margin-bottom: 14px;
+}
+h2 small {
+  font-size: 12px;
+  color: #85887d;
+  font-weight: 400;
+  margin-left: 6px;
+}
+h3 {
+  font-size: 21px;
+  margin-bottom: 10px;
+}
+.app-shell {
+  max-width: 1360px;
+  margin: auto;
+  padding: 0 32px;
+}
+.site-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 96px;
+  border-bottom: 1px solid #e6e5dd;
 }
-
-/* 主内容区域 */
-.main-content {
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 21px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.brand small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #7f8378;
+  margin-top: 5px;
+  letter-spacing: 1px;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #b34e2c;
+  color: white;
+  font-size: 24px;
+}
+.site-header nav {
+  display: flex;
+  gap: 8px;
+}
+.site-header nav button {
+  background: none;
+  border: 0;
+  padding: 12px 18px;
+  color: #797d73;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.site-header nav button.active {
+  background: #ebece5;
+  color: #343f2e;
+  font-weight: 700;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  max-width: 260px;
+}
+.account > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 42px 0 32px;
+}
+.hero p {
+  color: #797d73;
+  margin-bottom: 0;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #969a8b;
+  display: block;
+  margin-bottom: 10px;
+}
+.opening {
+  font-size: 13px;
+  background: #eceee4;
+  padding: 18px 22px;
+  border-radius: 12px;
+  line-height: 1.6;
+}
+.opening small {
+  display: block;
+  color: #797d73;
+  margin-top: 4px;
+}
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #849265;
+  margin-right: 8px;
+}
+.shop-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+.menu-column,
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.panel {
+  background: #fff;
+  border: 1px solid #e8e7df;
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 0;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.section-heading h2 {
+  margin-bottom: 0;
+}
+.section-heading .eyebrow {
+  margin-bottom: 6px;
+}
+.muted {
+  font-size: 13px;
+  color: #7d8176;
+  line-height: 1.7;
+}
+.gap-bottom {
+  margin-bottom: 16px;
+}
+.gap-top {
+  margin-top: 16px;
+}
+.full-width {
+  width: 100%;
+}
+.chat-form,
+.inline-form {
+  display: flex;
+  gap: 10px;
+}
+.delivery-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.inline-form .el-select {
+  min-width: 0;
+  flex: 1;
+}
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0;
+}
+.suggestions .el-button {
+  margin: 0;
+}
+.messages {
+  max-height: 360px;
+  overflow: auto;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.message {
+  background: #f6f7f2;
+  border-radius: 12px;
+  padding: 14px 16px;
+  max-width: 95%;
+  align-self: flex-start;
+}
+.message.user {
+  align-self: flex-end;
+  background: #fcf1e9;
+}
+.message small {
+  font-size: 11px;
+  color: #8a8d81;
+}
+.message p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.menu-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.category-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.category-list button {
+  border: 1px solid #e9e8e1;
+  background: #fff;
+  padding: 7px 15px;
+  border-radius: 20px;
+  color: #6e7467;
+  font-size: 13px;
+}
+.category-list button.active {
+  background: #354932;
+  color: white;
+  border-color: #354932;
+}
+.menu-search {
+  max-width: 190px;
+}
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.dish-card {
+  border: 1px solid #e8e7df;
+  border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  background-color: #f5f7fa;
-  overflow-x: hidden;
+  transition: border-color 0.2s;
 }
-
-/* 卡片头部 */
-.card-header {
+.dish-card.recommended {
+  border-color: #c36b40;
+  background: #fffbf6;
+}
+.dish-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-}
-
-/* 聊天区域 */
-.chat-input-area {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.chat-input {
-  flex: 1;
-}
-
-.chat-output {
-  width: 100%;
-}
-
-.formatted-container {
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 15px;
-  background-color: #fff;
-  height: 300px;
-  overflow-y: auto;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* 自定义滚动条样式 */
-.formatted-container::-webkit-scrollbar {
-  width: 8px;
-}
-
-.formatted-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.formatted-container::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
-  border-radius: 4px;
-}
-
-.formatted-container::-webkit-scrollbar-thumb:hover {
-  background: #909399;
-}
-
-.formatted-content {
-  width: 100%;
-  line-height: 1.6;
-  font-size: 15px;
-  color: #333;
-}
-
-.formatted-content h1,
-.formatted-content h2,
-.formatted-content h3,
-.formatted-content h4 {
-  margin-top: 16px;
+  min-height: 28px;
+  gap: 8px;
   margin-bottom: 12px;
-  font-weight: 600;
-  line-height: 1.25;
-  color: #333;
 }
-
-.formatted-content h1 {
-  font-size: 2em;
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 0.3em;
+.dish-category {
+  color: #8b927f;
+  font-size: 11px;
+  letter-spacing: 2px;
 }
-
-.formatted-content h2 {
-  font-size: 1.5em;
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 0.3em;
+.dish-description {
+  color: #7e8277;
+  font-size: 13px;
+  line-height: 1.8;
+  min-height: 46px;
+  overflow-wrap: anywhere;
 }
-
-.formatted-content h3 {
-  font-size: 1.25em;
-}
-
-.formatted-content h4 {
-  font-size: 1em;
-}
-
-.formatted-content strong {
-  font-weight: 600;
-  color: #000;
-}
-
-.formatted-content em {
-  font-style: italic;
-}
-
-.formatted-content ul, .formatted-content ol {
-  padding-left: 2em;
-  margin: 8px 0;
-}
-
-.formatted-content li {
-  margin: 4px 0;
-}
-
-.formatted-content p {
-  margin: 8px 0;
-}
-
-.raw-text-details {
-  margin-top: 10px;
-  color: #606266;
-}
-
-.raw-text-details summary {
-  cursor: pointer;
-  padding: 5px 0;
-  font-size: 14px;
-  color: #409EFF;
-}
-
-.raw-text-details summary:hover {
-  text-decoration: underline;
-}
-
-/* 配送区域 */
-.delivery-input-area {
+.dish-tags {
   display: flex;
+  gap: 6px;
   flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 20px;
 }
-
-.delivery-input {
-  flex: 1;
-  min-width: 300px;
-  margin-bottom: 10px;
-}
-
-.travel-select {
-  min-width: 150px;
-  margin-bottom: 10px;
-}
-
-.delivery-button {
-  min-width: 150px;
-  margin-bottom: 10px;
-}
-
-.delivery-details {
-  margin-top: 10px;
-}
-
-/* 菜品列表 */
-.menu-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.menu-item {
-  border: 1px solid #ebeef5;
+.dish-tags span {
+  font-size: 11px;
+  background: #f1f3eb;
+  color: #737c64;
+  padding: 4px 8px;
   border-radius: 4px;
-  padding: 15px;
-  transition: all 0.3s;
-  background-color: white;
 }
-
-.menu-item:hover {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+.allergens {
+  font-size: 11px;
+  color: #929587;
+  line-height: 1.6;
+  margin: 12px 0 20px;
+  overflow-wrap: anywhere;
 }
-
-.menu-item-highlighted {
-  border: 2px solid #F56C6C;
-  box-shadow: 0 0 10px rgba(245, 108, 108, 0.3);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(245, 108, 108, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(245, 108, 108, 0);
-  }
-}
-
-.menu-item-header {
+.dish-bottom {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  justify-content: space-between;
+  margin-top: auto;
 }
-
-.menu-item-header h3 {
+.price {
+  color: #ad4b2a;
+  font-size: 22px;
+}
+.cart-row {
+  border-bottom: 1px solid #eeeee8;
+  padding: 16px 0;
+}
+.cart-row strong {
+  font-size: 14px;
+}
+.cart-row p {
+  margin: 4px 0 10px;
+}
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.quantity-controls .el-button {
   margin: 0;
 }
-
-.price {
-  color: #F56C6C;
-  font-weight: bold;
-}
-
-.description {
-  margin: 10px 0;
-  color: #606266;
-  font-size: 14px;
-}
-
-.menu-item-details {
+.cart-total {
   display: flex;
-  gap: 5px;
-  margin: 10px 0 0 0;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 0;
+  color: #737969;
+  font-size: 13px;
 }
-
-.empty-menu,
-.loading-menu {
+.cart-total strong {
+  font-size: 23px;
+  color: #ad4b2a;
+}
+.el-form-item {
+  margin-bottom: 16px;
+}
+.el-form-item__label {
+  font-size: 13px !important;
+}
+.error-text {
+  color: #ba4131;
+}
+.orders-panel,
+.admin-tabs {
+  margin-top: 32px;
+}
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.order-card {
+  border: 1px solid #e8e7df;
+  border-radius: 12px;
   padding: 20px;
-  text-align: center;
 }
-
-.chat-textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: 10px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  font-family: inherit;
+.order-card p {
   font-size: 14px;
-  line-height: 1.5;
-  color: #606266;
-  resize: both;
-  margin-top: 10px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
-
-.chat-textarea:focus {
-  outline: none;
-  border-color: #409EFF;
+.order-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
-
-.chat-section {
+.order-actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.order-actions .el-button {
+  margin: 0;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  font-size: 13px;
+  color: #7d8176;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #eee;
+  padding: 14px 0;
+}
+.form-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.form-columns .el-input-number {
   width: 100%;
-  overflow: hidden;
 }
-
-.chat-response {
-  width: 100%;
-  overflow: visible;
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22px;
 }
-</style> 
+footer {
+  padding: 36px 0;
+  color: #949889;
+  text-align: center;
+  font-size: 12px;
+}
+.el-dialog__body p {
+  overflow-wrap: anywhere;
+}
+.responsive-dialog {
+  max-width: calc(100vw - 32px);
+}
+@media (max-width: 1000px) {
+  .shop-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 16px;
+  }
+  .panel {
+    padding: 20px;
+  }
+  .app-shell {
+    padding: 0 20px;
+  }
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+  .site-header {
+    gap: 12px;
+  }
+  .site-header nav button {
+    padding: 10px;
+  }
+  .hero h1 {
+    font-size: 28px;
+  }
+}
+@media (max-width: 720px) {
+  .site-header {
+    flex-wrap: wrap;
+    padding: 18px 0;
+    gap: 16px;
+  }
+  .site-header nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .account {
+    max-width: 180px;
+  }
+  .hero {
+    padding: 28px 0;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .hero h1 {
+    font-size: 27px;
+  }
+  .opening {
+    width: 100%;
+    font-size: 12px;
+    padding: 14px 18px;
+  }
+  .shop-layout {
+    grid-template-columns: 1fr;
+  }
+  .menu-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dish-card {
+    padding: 14px;
+  }
+  .dish-card h3 {
+    font-size: 18px;
+  }
+  .app-shell {
+    padding: 0 14px;
+  }
+  .panel {
+    padding: 18px;
+  }
+  .form-columns {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .brand {
+    font-size: 18px;
+  }
+  .brand small {
+    font-size: 10px;
+  }
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+  .price {
+    font-size: 20px;
+  }
+  .dish-bottom {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 390px) {
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

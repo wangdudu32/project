@@ -9,6 +9,15 @@ node_modules/
 dist/
 *.tsbuildinfo
 *.log
-auto_question/backend/storage/
-auto_question/models/
-auto_question/results/
+
+# 面试记录、上传材料和 PDF 页面缓存（由运行过程创建）
+/auto_question/backend/storage/
+/auto_question/backend/uploads/
+/auto_question/backend/temp_images/
+
+# 下载的模型、训练输出和可重新生成的数据；保留下载及生成脚本
+/auto_question/models/
+/auto_question/results/
+/auto_question/data/sft/
+/auto_question/data/sft_generated_qgen.jsonl
+/auto_question/data/sft_generated_qgen.parquet

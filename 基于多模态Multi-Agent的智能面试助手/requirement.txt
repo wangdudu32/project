@@ -1,0 +1,2 @@
+# 兼容单数文件名；统一入口为 requirements.txt。
+-r requirements.txt

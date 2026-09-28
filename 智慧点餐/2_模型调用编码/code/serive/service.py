@@ -1,25 +1,16 @@
-from tools.amap_tool import check_delivery_range,PathModeInput
-from  tools.db_tool import get_menu_item_list
-from  LangChain.main import langchain_chat
-from typing import  List,Dict
-
-def   delivery_check(address:str,travel_mode:PathModeInput):
-     """配送范围的查询"""
-
-     return check_delivery_range(address, travel_mode)
+"""保留原项目的业务入口，供脚本调用。"""
+from LangChain.main import langchain_chat
+from tools.amap_tool import check_delivery_range
+from tools.db_tool import get_menu_item_list
 
 
-def   menu_lists()->List[Dict]:
-    """菜品列表查询"""
-    return  get_menu_item_list()
+def delivery_check(address, travel_mode='2'):
+    return check_delivery_range(address, travel_mode)
 
 
-def  smart_chat(user_query:str):
-    """对话聊天的入口"""
-
-    return  langchain_chat(user_query)
+def menu_lists():
+    return get_menu_item_list()
 
 
-
-
-
+def smart_chat(user_query, history=None):
+    return langchain_chat(user_query, history)

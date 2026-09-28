@@ -1,0 +1,12 @@
+# 两个后端的运行依赖（Python 3.12）。
+# 在项目根目录执行：python -m pip install -r requirements.txt
+# 复用各模块清单，依赖及版本约束在对应模块内维护。
+-r auto_question/backend/requirements.txt
+-r industry_information_assistant/backend/requirements.txt
+
+# 可选依赖（从项目根目录单独安装）：
+# 本地模型：python -m pip install -r auto_question/backend/requirements-local.txt
+# 模型训练：python -m pip install -r auto_question/requirements.txt
+# 面试测试：python -m pip install -r auto_question/backend/requirements-dev.txt
+# 行业测试：python -m pip install -r industry_information_assistant/backend/requirements-dev.txt
+# 前端依赖由各 frontend/package.json 管理，在对应目录执行 npm ci。

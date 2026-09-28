@@ -1,0 +1,16 @@
+# 智慧点餐完整 Python 依赖（基础功能 + AI 功能 + 测试）
+# 环境：Python 3.10+
+# 在项目根目录执行：pip install -r requirement.txt
+# 具体版本范围维护在下面的文件中，避免重复修改。
+
+# 基础服务和 AI：FastAPI、Uvicorn、Pydantic、SQLAlchemy、PyMySQL、
+# python-dotenv、requests、LangChain、DashScope、Pinecone。
+-r ./2_模型调用编码/code/requirements-ai.txt
+
+# 测试：pytest、httpx（此文件也包含基础服务依赖）。
+-r ./2_模型调用编码/code/requirements-dev.txt
+
+# 以下环境不通过 pip 安装：
+# 前端需要 Node.js 22.12+，在 2_模型调用编码/code/ui 执行 npm ci。
+# 前端依赖及版本见 ui/package.json 和 ui/package-lock.json。
+# SQLite 随 Python 提供；切换 MySQL 时需另外准备数据库服务。

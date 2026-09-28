@@ -1,0 +1,60 @@
+# 两个子项目共用的忽略规则；运行数据的具体路径见各子项目 .gitignore。
+# 保留源码、测试、文档、静态资源、SQL、依赖清单和依赖锁文件。
+
+# Python 虚拟环境、字节码和工具缓存
+.venv/
+.venv_*/
+.venv-*/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+*.egg-info/
+.eggs/
+
+# 前端依赖及构建缓存
+node_modules/
+.vite/
+*.tsbuildinfo
+
+# 构建产物
+dist/
+dist-ssr/
+build/
+
+# 测试报告和覆盖率
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+playwright-report/
+test-results/
+
+# 本地环境变量；提交示例配置供其他人初始化环境
+.env
+.env.*
+!.env.example
+
+# 日志和通用工具缓存
+*.log
+logs/
+.cache/
+
+# 编辑器本地状态和临时文件
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# 操作系统杂项
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini

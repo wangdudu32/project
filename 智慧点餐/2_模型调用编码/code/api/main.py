@@ -1,179 +1,95 @@
-"""
-AiMenu FastAPI 接口
+"""智慧点餐 API。基础点餐不依赖模型和地图服务。"""
+import logging
+import os
+from contextlib import asynccontextmanager
 
-提供三个主要接口：
-1. POST /chat - 智能对话接口
-2. POST /delivery - 配送查询接口
-3. GET /menu/list - 菜品列表接口
-"""
-from  pydantic import  BaseModel
-from fastapi import FastAPI
-from typing import Dict, Any,List,Optional
-from serive.service import delivery_check,menu_lists,smart_chat
-from tools.amap_tool import PathModeInput
+from fastapi import Depends, FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
-# 请求数据模型
-class DeliveryRequest(BaseModel):
-    """配送查询请求"""
-    address: str
-    travel_mode: PathModeInput = "2"  # 1=步行, 2=骑电动车, 3=驾车
+import config
+from api import admin, auth, shop
+from api.schemas import ChatRequest, DeliveryRequest
+from database import SessionLocal, init_db
+from seed import seed_menu
 
-
-class ChatRequest(BaseModel):
-    """智能对话请求"""
-    query: str   # 输入的自然语言：我想查询川菜系列
-
-# 响应数据模型
-class DeliveryResponse(BaseModel):
-    """配送查询响应"""
-    success: bool  # 成功(True) or 失败的标识（False）
-    in_range: bool #  配送是否在配送范围内(True False)
-    distance: float # 配送距离(公里 km)
-    formatted_address: str # 格式化地址
-    duration:float # 配送时间（秒）
-    message: str  # (前端要展示的配送完整消息内容)
-    travel_mode: PathModeInput # 配送模式 (1:步行 2:骑电动车 3:驾车)
-    input_address: str # 输入原始内容
+logger = logging.getLogger(__name__)
 
 
-class MenuListResponse(BaseModel):
-    """菜品列表响应"""
-    success: bool
-    menu_items: List[dict] # 菜品列表
-    count: int # 菜品数
-    message: str # 响应消息提示
-
-class ChatResponse(BaseModel):
-    """智能对话响应"""
-    success: bool # 成功失败表示
-    query: str # 原始查询内容
-    response: Optional[str] = None # 响应内容（如果是询问的是普通问题或者配送问题 response中就有模型的回复内容 recommendation没有数据）
-    recommendation: Optional[str] = None # （如果是询问菜品推荐相关的问题 recommendation 就有模型推荐的内容 response中就有模型的回复内容 response）
-    menu_ids: Optional[List[str]] = None # （如果是询问菜品推荐相关的问题 recommendation、menu_ids 都有模型推荐的内容（模型生成的推荐语言 推荐的菜品id列表）  response中就有模型的回复内容）
+@asynccontextmanager
+async def lifespan(app):
+    init_db()
+    with SessionLocal() as db:
+        seed_menu(db)
+    yield
 
 
-# 1. 定义FASTAPI实例
-app = FastAPI(title="欢迎使用智慧点餐系统",
-              description="智慧点餐系统提供三个主要接口智能对话接口、配送查询接口、菜品查询列表接口", version="v1.0")
+request_header = APIKeyHeader(name="X-Requested-With", auto_error=False, description="写接口填写 aimenu")
+app = FastAPI(title="智慧点餐", version="2.0", lifespan=lifespan,
+              dependencies=[Depends(request_header)])
+app.include_router(auth.router)
+app.include_router(shop.router)
+app.include_router(admin.router)
 
 
-# 2、指定跟路径测试前后端是否能够打通
-@app.get(path="/")
-def root() -> Dict[str, Any]:
-    """测试前端访问根路径请求被处理"""
-
-    return  {"message":"欢迎使用智慧点餐FastAPI框架","code":200}
-
-
-# 3. 健康检查
-@app.get(path="/healthy")
-def root() -> Dict[str, Any]:
-    """测试多路径请求访问的健康状态"""
-
-    return  {"message":"多路径请求接收到","code":200,"status":"success"}
+@app.middleware("http")
+async def protect_requests(request: Request, call_next):
+    # Cookie 登录配合自定义请求头，拒绝第三方页面的普通表单提交。
+    # 不开放跨域；前端开发时使用 Vite 的 /api 代理。
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.headers.get("X-Requested-With") != "aimenu":
+        return JSONResponse(status_code=403, content={"detail": "请求缺少 X-Requested-With: aimenu"})
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
-@app.post("/delivery", response_model=DeliveryResponse)
-def delivery_endpoint(request: DeliveryRequest):
-    """
-    配送查询接口
-
-    检查指定地址是否在配送范围内
-    """
+@app.exception_handler(RequestValidationError)
+async def validation_error(request, exc):
+    return JSONResponse(status_code=422, content={"detail": "输入格式不正确，请检查必填项、长度和数值范围"})
 
 
-    # 1.调用查询范围的工具
-    response=delivery_check(request.address,request.travel_mode)
-
-    if response['status']=="success":
-        return DeliveryResponse(
-        success= True,
-        in_range=response['in_range'],
-        distance= response['distance'],
-        duration=response['duration'],
-        formatted_address= response['formatted_address'],
-        message=response['message'],
-        travel_mode=request.travel_mode,
-        input_address= request.address
-        )
-
-    # 2.返回
-    return   DeliveryResponse(
-        success=False,
-        in_range=False,
-        distance=0.0,
-        duration=0.0,
-        formatted_address=request.address,
-        message=response['message'],
-        travel_mode=request.travel_mode,
-        input_address=request.address
-    )
+@app.exception_handler(SQLAlchemyError)
+async def database_error(request, exc):
+    logger.error("数据库操作失败：%s", type(exc).__name__)
+    return JSONResponse(status_code=503, content={"detail": "数据库暂时不可用，请稍后重试"})
 
 
-@app.get("/menu/list", response_model=MenuListResponse)
-def menu_list_endpoint():
-    """
-    菜品列表接口
-
-    获取所有菜品的结构化信息，专为前端展示设计
-    """
-
-    # 1.查询所有的菜品列表
-    response=menu_lists()
+@app.get("/")
+def root():
+    return {"message": "智慧点餐 API", "docs": "/docs"}
 
 
-    # 2.封装返回
-    if  not response:
-        return MenuListResponse(
-        success= False,
-        menu_items=[],
-        count=0,
-        message="暂无任何菜品信息"
-        )
-    return MenuListResponse(
-        success=True,
-        menu_items=response,
-        count=len(response),
-        message=f"已查询到{len(response)}个菜品信息"
-    )
+@app.get("/health")
+@app.get("/healthy", include_in_schema=False)
+def health():
+    with SessionLocal() as db:
+        db.execute(text("SELECT 1"))
+    return {"status": "ok"}
 
 
-@app.post("/chat", response_model=ChatResponse)
-def chat_endpoint(request: ChatRequest):
-    """
-    智能对话接口
-
-    接收用户问题，返回智能助手回复
-    """
-    # 1.调用聊天方法
-    chat_response=smart_chat(request.query)   #  str  or  dict
-
-    # 2.根据回复的内容，判断是推荐菜品的回复还是普通问题询问以及菜品推荐问题的询问 封装对应的ChatResponse对象
-    if isinstance(chat_response,dict) and "recommendation" in chat_response and "menu_ids" in chat_response:
-        return ChatResponse(
-        success= True,
-        query=request.query,
-        recommendation=chat_response['recommendation'],
-        menu_ids=chat_response['menu_ids']
-        )
-    else:
-        return ChatResponse(
-        success= True,
-        query=request.query,
-        response=chat_response
-        )
+@app.get("/config")
+def public_config():
+    return {"restaurant_name": os.getenv("RESTAURANT_NAME", "小满餐厅"),
+            "restaurant_address": os.getenv("RESTAURANT_ADDRESS", "北京市海淀区中关村"),
+            "restaurant_hours": os.getenv("RESTAURANT_HOURS", "每天 09:00-22:00"),
+            "ai_enabled": config.AI_ENABLED, "amap_enabled": config.AMAP_ENABLED,
+            "payment_mode": "demo"}
 
 
+@app.post("/chat")
+def chat(data: ChatRequest):
+    from LangChain.main import langchain_chat
+    result = langchain_chat(data.query, [message.model_dump() for message in data.history])
+    return {"success": True, "query": data.query, **result}
 
 
-
-
-
-
-
-
-
-
-
-
-
+@app.post("/delivery")
+def delivery(data: DeliveryRequest):
+    from tools.amap_tool import check_delivery_range
+    result = check_delivery_range(data.address, data.travel_mode)
+    return {**result, "success": result["status"] == "success",
+            "travel_mode": data.travel_mode, "input_address": data.address}
