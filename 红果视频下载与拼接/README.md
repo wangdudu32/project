@@ -14,7 +14,7 @@
 ├── merge_videos.py                 # 拼接入口
 ├── requirements.txt               # Python 依赖
 ├── .gitignore
-├── HongguoDownloader-Setup.exe     # 本地安装包，默认不提交到 Git
+├── HongguoDownloader-Setup.exe     # 从 Releases 单独下载后可放在此处，不纳入 Git
 ├── docs/
 │   ├── downloader.md              # 下载器与视频目录说明
 │   └── merging.md                 # 拼接参数、规则与常见问题
@@ -24,11 +24,11 @@
 
 ## 快速开始（Windows PowerShell）
 
-以下命令均在本项目根目录运行。准备 Python 3.12；下载器安装包另行获取，见[下载器说明](docs/downloader.md)。
+以下命令均在本项目根目录运行，即仓库中的 `红果视频下载与拼接/` 目录。准备 Python 3.12；从 [GitHub Releases](https://github.com/wangdudu32/project/releases/tag/hongguo-downloader-v1.0.0.72) 单独获取 Windows 下载器安装包，版本及校验信息见[下载器说明](docs/downloader.md)。
 
 ### 1. 下载并整理视频
 
-双击 `HongguoDownloader-Setup.exe`，按安装向导完成安装，再通过下载器完成所需剧集的下载。具体界面与操作以该版本下载器为准。
+先[下载 Windows 安装包 v1.0.0.72](https://github.com/wangdudu32/project/releases/download/hongguo-downloader-v1.0.0.72/HongguoDownloader-Setup.exe)，再双击 `HongguoDownloader-Setup.exe`，按安装向导完成安装，并通过下载器完成所需剧集的下载。具体界面与操作以该版本下载器为准。
 
 等所有下载任务完成后，找到直接包含分集视频的目录。一部剧的每一季应分别存放，例如：
 
@@ -122,6 +122,8 @@ uv pip install --python .\.venv\Scripts\python.exe -r requirements.txt
 
 ## 仓库文件与安装包
 
-源码、依赖清单、说明文档和测试可以提交到仓库。`.gitignore` 排除了虚拟环境、缓存、视频素材、合并成品、临时文件、日志以及 `HongguoDownloader-Setup.exe`。
+源码、依赖清单、说明文档和测试保存在 [wangdudu32/project](https://github.com/wangdudu32/project) 仓库的 `红果视频下载与拼接/` 目录中。`.gitignore` 排除了虚拟环境、缓存、视频素材、合并成品、临时文件、日志以及 `HongguoDownloader-Setup.exe`。
 
-安装包保留在本地项目目录中，不会随普通 Git 提交上传；通过 Git 克隆的项目也不会自带安装包。发布项目时，需要另外提供安装包附件或下载地址，并在[下载器说明](docs/downloader.md)中补充实际获取入口。当前项目尚未配置远程仓库或安装包下载地址。
+Windows 安装包通过 [GitHub Releases](https://github.com/wangdudu32/project/releases/tag/hongguo-downloader-v1.0.0.72) 的附件分发，可在发布页的 **Assets** 中下载 `HongguoDownloader-Setup.exe`。Git 克隆、仓库的 Download ZIP 以及 Release 自动生成的 Source code 归档均不包含该安装包，需要单独下载。下载后可将安装包放在本项目目录中保留，不会随普通 Git 提交上传。
+
+更新安装包版本时，应发布新的 Release 附件，并同步更新本页下载链接及[下载器说明](docs/downloader.md)中的版本、大小和 SHA-256 校验值。

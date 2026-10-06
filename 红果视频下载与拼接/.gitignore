@@ -36,7 +36,7 @@ poster.jpg
 .merge-videos-*/
 *.log
 
-# Distribute the installer separately; keep the local file
+# 下载器安装包通过 GitHub Releases 分发，保留本地文件
 /HongguoDownloader-Setup.exe
 
 # Operating system metadata
