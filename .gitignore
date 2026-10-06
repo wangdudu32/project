@@ -1,4 +1,4 @@
-# 两个子项目共用的忽略规则；运行数据的具体路径见各子项目 .gitignore。
+# 各子项目共用的忽略规则；运行数据的具体路径见各子项目 .gitignore。
 # 保留源码、测试、文档、静态资源、SQL、依赖清单和依赖锁文件。
 
 # Python 虚拟环境、字节码和工具缓存
@@ -12,6 +12,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.uv-cache/
 .tox/
 .nox/
 *.egg-info/
@@ -45,6 +46,10 @@ test-results/
 logs/
 .cache/
 
+# 未完成的下载文件
+*.part
+*.crdownload
+
 # 编辑器本地状态和临时文件
 .idea/
 .vscode/*
@@ -58,3 +63,4 @@ logs/
 ._*
 Thumbs.db
 Desktop.ini
+desktop.ini

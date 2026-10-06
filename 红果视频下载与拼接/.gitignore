@@ -1,0 +1,45 @@
+# Local Python environments and caches
+.venv/
+venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+
+# Downloaded material and generated output directories
+/downloads/
+/videos/
+/output/
+
+# Video inputs and merged outputs, including uppercase extensions
+*.[mM][pP]4
+*.[mM][kK][vV]
+*.[mM][oO][vV]
+*.[aA][vV][iI]
+*.[mM]4[vV]
+*.[wW][eE][bB][mM]
+*.[tT][sS]
+*.[mM][tT][sS]
+*.[mM]2[tT][sS]
+*.[fF][lL][vV]
+*.[wW][mM][vV]
+*.[mM][pP][gG]
+*.[mM][pP][eE][gG]
+*.3[gG][pP]
+
+# Download sidecars and incomplete downloads
+.series.json
+poster.jpg
+*.part
+*.crdownload
+
+# Merge work directories and logs
+.merge-videos-*/
+*.log
+
+# Distribute the installer separately; keep the local file
+/HongguoDownloader-Setup.exe
+
+# Operating system metadata
+Thumbs.db
+desktop.ini
+.DS_Store
