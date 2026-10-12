@@ -1,0 +1,42 @@
+# 本机配置；仅公开虚构的配置示例
+/config.json
+/config.json.*
+/config.*.json
+!/config.example.json
+/registry.lock
+/runtime/
+/systemd/
+
+# 环境变量和登录凭据
+.env
+.env.*
+/.codex/
+/.codex-*/
+auth.json
+auth.json.*
+credentials.json
+credentials.json.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 日志、备份和临时文件
+*.log
+*.log.*
+*.bak
+*.backup
+*.old
+*.tmp
+*.swp
+*~
+/backup/
+/backups/
+
+# Python 和编辑环境
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+Thumbs.db

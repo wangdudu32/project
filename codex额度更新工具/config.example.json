@@ -1,0 +1,16 @@
+{
+  "codex_binary": "/path/to/codex",
+  "proxy_env": {},
+  "query_timeout_seconds": 30,
+  "task_timeout_seconds": 120,
+  "retry_seconds": 300,
+  "settle_seconds": 60,
+  "max_attempts_per_window": 3,
+  "accounts": {
+    "account-a": {
+      "home": "/path/to/codex-home",
+      "model": "YOUR_MODEL_ID",
+      "limit_id": "codex"
+    }
+  }
+}
