@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""Installed as a symlink; keep imports relative to the real source directory."""
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from quota_pool.cli import main
+
+raise SystemExit(main())

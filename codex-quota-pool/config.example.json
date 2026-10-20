@@ -1,0 +1,6 @@
+{
+  "accounts": ["codex_main", "codex_alt"],
+  "switch_below_percent": 1,
+  "poll_seconds": 15,
+  "resume_when_available": false
+}

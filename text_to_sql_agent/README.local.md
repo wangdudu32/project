@@ -6,7 +6,7 @@
 本目录作为 `wangdudu32/project` 仓库的普通目录保存，便于一起提交源码和学习笔记。
 保留上游 README 和来源信息；上游 README 标注 MIT，本次导入的快照未包含独立 LICENSE 文件。
 
-代码位于 `~/project/text_to_sql_agent/text-to-sql-agent`，使用已有的
+代码位于 `~/project/text_to_sql_agent`，使用已有的
 `~/project/text_to_sql_agent/.venv_text2sql`（Python 3.12）。
 项目依赖使用上游 `uv.lock` 的版本，通过 `uv pip install` 安装；另装了
 `notebook` 和 `ipykernel` 以运行教程。Chinook 示例数据库已下载到 `chinook.db`。
@@ -16,7 +16,6 @@
 ```bash
 cd ~/project/text_to_sql_agent
 source .venv_text2sql/bin/activate
-cd text-to-sql-agent
 python -c "import sys; print(sys.executable)"
 ```
 
@@ -78,11 +77,11 @@ PY
 ```bash
 uv export --frozen --no-dev --no-emit-project --no-hashes \
   --format requirements-txt --output-file /tmp/text2sql-upstream-requirements.txt
-uv pip install --python ../.venv_text2sql/bin/python \
+uv pip install --python .venv_text2sql/bin/python \
   -e . -r /tmp/text2sql-upstream-requirements.txt notebook ipykernel
-../.venv_text2sql/bin/python -m ipykernel install --sys-prefix \
+.venv_text2sql/bin/python -m ipykernel install --sys-prefix \
   --name text2sql --display-name "Python (text2sql)"
-uv pip check --python ../.venv_text2sql/bin/python
+uv pip check --python .venv_text2sql/bin/python
 ```
 
 未填写有效 API Key 前，可以验证依赖、数据库和命令行帮助；模型问答需要填好密钥后运行。
@@ -96,11 +95,10 @@ uv pip check --python ../.venv_text2sql/bin/python
 cd ~/project/text_to_sql_agent
 uv venv --python 3.12 .venv_text2sql
 source .venv_text2sql/bin/activate
-cd text-to-sql-agent
 
 uv export --frozen --no-dev --no-emit-project --no-hashes \
   --format requirements-txt --output-file /tmp/text2sql-upstream-requirements.txt
-uv pip install --python ../.venv_text2sql/bin/python \
+uv pip install --python .venv_text2sql/bin/python \
   -e . -r /tmp/text2sql-upstream-requirements.txt notebook ipykernel
 python -m ipykernel install --sys-prefix --name text2sql --display-name "Python (text2sql)"
 
@@ -118,10 +116,10 @@ Git 保存依赖清单、锁文件和配置模板；`.venv_text2sql/`、`.env`�
 
 ```bash
 cd ~/project
-git add -- text_to_sql_agent/text-to-sql-agent
-git diff --cached --stat -- text_to_sql_agent/text-to-sql-agent
-git diff --cached --name-only -- text_to_sql_agent/text-to-sql-agent
-git commit --only -m "更新 Text2SQL 学习内容" -- text_to_sql_agent/text-to-sql-agent
+git add -- text_to_sql_agent
+git diff --cached --stat -- text_to_sql_agent
+git diff --cached --name-only -- text_to_sql_agent
+git commit --only -m "更新 Text2SQL 学习内容" -- text_to_sql_agent
 git push origin main
 ```
 
