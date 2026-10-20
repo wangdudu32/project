@@ -18,6 +18,7 @@ __pycache__/
 .nox/
 *.egg-info/
 .eggs/
+deer_flow
 
 # 前端依赖及构建缓存
 node_modules/
